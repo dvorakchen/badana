@@ -322,6 +322,7 @@ type list: T[]
 
 ```svelte
 <DeleteConfirm
+	size="sm"
 	label={'删除按钮'}
 	confirmLabel={'确认删除'}
 	onDelete={() => {

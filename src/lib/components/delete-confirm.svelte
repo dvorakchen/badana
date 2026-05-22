@@ -8,11 +8,13 @@
 	let {
 		onDelete,
 		label = m.delete(),
-		confirmLabel = m.confirm_delete()
+		confirmLabel = m.confirm_delete(),
+		size = 'md'
 	}: {
 		onDelete: () => void | Promise<void>;
 		label?: string;
 		confirmLabel?: string;
+		size?: 'sm' | 'md';
 	} = $props();
 
 	let confirmed = $state(false);
@@ -73,7 +75,11 @@
 		class:pointer-events-none={confirmed}
 		class:translate-x-[-10px]={confirmed}
 	>
-		<button class="btn whitespace-nowrap btn-outline btn-sm btn-error" onclick={handleFirstClick}>
+		<button
+			class="btn whitespace-nowrap btn-outline btn-error"
+			class:btn-sm={size === 'sm'}
+			onclick={handleFirstClick}
+		>
 			<Trash2 size={14} />
 			{label}
 		</button>
@@ -87,7 +93,8 @@
 		class:translate-x-[10px]={!confirmed}
 	>
 		<button
-			class="btn whitespace-nowrap btn-sm btn-error"
+			class="btn whitespace-nowrap btn-error"
+			class:btn-sm={size === 'sm'}
 			onclick={handleConfirm}
 			disabled={pending || countdown > 0}
 		>
@@ -101,7 +108,12 @@
 				({countdown})
 			{/if}
 		</button>
-		<button class="btn btn-square btn-soft btn-sm" onclick={handleCancel} disabled={pending}>
+		<button
+			class="btn btn-square btn-soft"
+			class:btn-sm={size === 'sm'}
+			onclick={handleCancel}
+			disabled={pending}
+		>
 			<X size={14} />
 		</button>
 	</div>

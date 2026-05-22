@@ -6,6 +6,7 @@
 	import { resolve } from '$app/paths';
 	import UserAvatar from '$lib/components/user/user-avatar.svelte';
 	import { i18nFromJSON } from '$lib/shared/utils';
+	import { themeStore } from '$lib/client/store/theme.svelte';
 
 	async function handleLogout() {
 		await authClient.signOut();
@@ -15,7 +16,10 @@
 </script>
 
 <div class="bg-base-100 px-2 pb-2">
-	<div class="dropdown dropdown-end dropdown-top w-full">
+	<div
+		class="dropdown dropdown-end dropdown-top w-full rounded-lg"
+		data-theme={themeStore.currentTheme}
+	>
 		<div tabindex="0" role="button" class="btn h-full w-full px-3 py-1 shadow-all btn-ghost">
 			<div class="grid w-full grid-cols-[auto_1fr_auto] items-center gap-2 gap-x-4 gap-y-1">
 				<!-- 头像 -->

@@ -168,7 +168,7 @@
 					{m.confirm()}
 				</button>
 				<span {@attach guard('ROLE_DELETE')}>
-					<DeleteConfirm label={m.delete_role()} onDelete={handleDeleteRole} />
+					<DeleteConfirm size="sm" label={m.delete_role()} onDelete={handleDeleteRole} />
 				</span>
 			</div>
 		{/if}
@@ -254,6 +254,7 @@
 								</a>
 								{#if row.username !== USER_ADMIN_USERNAME}
 									<DeleteConfirm
+										size="sm"
 										onDelete={() => handleRemoveUser(row)}
 										{@attach guard('ROLE_DELETE')}
 									/>

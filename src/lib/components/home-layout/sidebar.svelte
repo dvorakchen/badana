@@ -14,6 +14,7 @@ Sidebar component for the admin dashboard.
 	import { GitFork, LayoutDashboard } from '@lucide/svelte';
 	import { PermissionSchema } from '$lib/shared';
 	import { hasPermissions } from '$lib/client/permission/attachments/permission-guard';
+	import { themePrefer } from '$lib/client/store/theme.svelte';
 
 	const menuList: MenuListDateType[] = [
 		{
@@ -101,7 +102,7 @@ Sidebar component for the admin dashboard.
 	];
 </script>
 
-<aside class="flex h-full flex-col bg-base-200/20 pb-2">
+<aside class="flex h-full flex-col pb-2" data-theme={themePrefer.dark}>
 	<header class="sticky top-0 z-10 p-2">
 		<a class="mx-2 flex gap-4 rounded-xl p-2 hover:bg-base-200" href={resolve('/')}>
 			<!-- Home icon -->

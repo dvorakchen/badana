@@ -12,8 +12,9 @@ class ThemeStore {
 		this.changeTheme();
 	}
 
-	private _isDark = false;
+	private _isDark = $state(false);
 
+	public currentTheme = $derived(this._isDark ? themePrefer.dark : themePrefer.light);
 	public toggle(): void {
 		this._isDark = !this._isDark;
 		localStorage.setItem(IS_DARK_KEY, JSON.stringify(this._isDark));
@@ -21,7 +22,7 @@ class ThemeStore {
 	}
 
 	private changeTheme(): void {
-		document.documentElement.dataset.theme = this._isDark ? themePrefer.dark : themePrefer.light;
+		document.documentElement.dataset.theme = this.currentTheme;
 	}
 }
 
