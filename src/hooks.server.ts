@@ -11,17 +11,25 @@ import { logger } from '$lib/server/logger';
 import { runMigrations, seed } from '$lib/server/db/seed';
 import { initWebSocket } from '$lib/server/websocket';
 import { APIError } from 'better-auth/api';
-import { container } from 'tsyringe';
-import { AiDbService, NormalDbService } from '$lib/server/db';
+import { setupContainer } from '$lib/server/di';
 
 /**
  * 处理路由保护的 Handle。这个 Handle 会在每个请求前检查用户是否已登录，除非请求的路径在 anonymousPaths 中。
  */
 const handleRouteProtected: Handle = ({ event, resolve }) => {
 	const pathname = new URL(event.request.url).pathname;
-	const anonymousPaths = ['/', '/login', '/api/auth/sign-in/email']; // 定义不需要认证的路径
 
-	if (anonymousPaths.some((path) => pathname === path || pathname.indexOf('/__data.json') !== -1)) {
+	// 1. 放行所有被 better-auth 接管的底层 API 路由
+	if (pathname.startsWith('/api/auth/')) {
+		return resolve(event);
+	}
+
+	// 2. 放行纯粹的公共页面（您提到只有登录界面不需要登录，如果首页 /
+	if (pathname === '/login' || pathname === '/') {
+		return resolve(event);
+	}
+
+	if (pathname.indexOf('/__data.json') !== -1) {
 		return resolve(event); // 直接处理这些路径
 	}
 
@@ -58,7 +66,7 @@ const handleBetterAuth: Handle = async ({ event, resolve }) => {
 		if (e instanceof APIError) {
 			// 如果是 APIError，说明是业务逻辑拦截（如 banned）
 			// 我们在这里不处理，让后面的 svelteKitHandler 再次执行并正确返回 Response
-			logger.debug(`APIError caught in hooks: ${e.message}`);
+			logger.warn(`APIError caught in hooks: ${e.message}`);
 		} else {
 			logger.error(e, 'Error in getSession hook');
 		}
@@ -106,21 +114,9 @@ export const handle: Handle = sequence(
 );
 
 if (!building) {
-	registerDI();
+	setupContainer()
 	await runMigrations();
 	await seed();
 
 	initWebSocket();
-}
-
-function registerDI() {
-	container.register('NormalDbService', {
-		useClass: NormalDbService
-	});
-	logger.info('DI registered NormalDbService');
-
-	container.register('AiDbService', {
-		useClass: AiDbService
-	});
-	logger.info('DI registered AiDbService');
 }

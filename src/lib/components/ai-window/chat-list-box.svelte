@@ -13,7 +13,7 @@
 	});
 </script>
 
-<div class="my-4 grow">
+<div class="my-4 max-h-full grow overflow-y-scroll">
 	<ul>
 		{#each chatList as bubble (bubble.id)}
 			<bubble.View {...bubble.props} />

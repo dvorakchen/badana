@@ -9,7 +9,6 @@ import type { DbService } from '$lib/server/db';
 import { LogService } from '$lib/server/logger';
 import { type WebSocket } from 'ws';
 import type { WebSocketWithUser } from '$lib/server/websocket';
-import { ofetch } from 'ofetch';
 
 @injectable()
 export class AgentService {
@@ -49,45 +48,73 @@ export class AgentService {
 		const systemPrompt = await this.systemPrompt(user);
 
 		try {
-			// 直接使用 ofetch 调用接口
-			const response = await ofetch(`${this.url}/v1/chat/completions`, {
+			const response = await fetch(`${this.url}/v1/chat/completions`, {
 				method: 'POST',
 				headers: {
 					Authorization: `Bearer ${this.apiKey}`,
 					'Content-Type': 'application/json'
 				},
-				body: {
-					"model": this.model,
-					"messages": [
-						{
-							"role": "system",
-							"content": systemPrompt
-						},
-						{
-							"role": "user",
-							"content": txt
-						}
+				body: JSON.stringify({
+					model: this.model,
+					messages: [
+						{ role: 'system', content: systemPrompt },
+						{ role: 'user', content: txt }
 					],
-					"stream": false
-				}
-
+					stream: true
+				})
 			});
 
-			const content = response.choices?.[0]?.message?.content;
-			if (content) {
+			if (!response.ok) {
+				const errorText = await response.text();
+				this.logger.error({ status: response.status, errorText }, 'AI 接口请求失败');
 				this.sendToWs({
 					type: 'plain',
-					data: content
+					data: '抱歉，AI 服务请求失败。'
 				});
-			} else {
-				this.logger.error({ response }, 'AI 响应格式异常');
-				this.sendToWs({
-					type: 'plain',
-					data: '抱歉，AI 响应出现异常，请稍后再试。'
-				});
+				return;
+			}
+
+			const reader = response.body?.getReader();
+			if (!reader) {
+				this.logger.error('无法获取响应流读取器');
+				return;
+			}
+
+			const decoder = new TextDecoder();
+			let buffer = '';
+
+			while (true) {
+				const { done, value } = await reader.read();
+				if (done) break;
+
+				buffer += decoder.decode(value, { stream: true });
+
+				const lines = buffer.split('\n');
+				buffer = lines.pop() || '';
+
+				for (const line of lines) {
+					const trimmed = line.trim();
+					if (!trimmed || trimmed === 'data: [DONE]') continue;
+
+					if (trimmed.startsWith('data: ')) {
+						const data = trimmed.slice(6);
+						try {
+							const json = JSON.parse(data);
+							const chunk = json.choices?.[0]?.delta?.content;
+							if (chunk) {
+								this.sendToWs({
+									type: 'plain',
+									data: chunk
+								});
+							}
+						} catch (e) {
+							// 忽略不完整的 JSON 或非 JSON 行
+						}
+					}
+				}
 			}
 		} catch (error) {
-			this.logger.error(error, '调用 AI 接口失败');
+			this.logger.error(error, '流式调用 AI 接口异常');
 			this.sendToWs({
 				type: 'plain',
 				data: '抱歉，与 AI 服务通信时出错。'
