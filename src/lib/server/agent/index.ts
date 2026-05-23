@@ -69,7 +69,7 @@ export class AgentService {
 				const errorText = await response.text();
 				this.logger.error({ status: response.status, errorText }, 'AI 接口请求失败');
 				this.sendToWs({
-					type: 'plain',
+					type: 'plain-chunk',
 					data: '抱歉，AI 服务请求失败。'
 				});
 				return;
@@ -101,13 +101,21 @@ export class AgentService {
 						const data = trimmed.slice(6);
 						try {
 							const json = JSON.parse(data);
-							const chunk = json.choices?.[0]?.delta?.content;
-							if (chunk) {
+						const delta = json.choices?.[0]?.delta;
+						if (delta) {
+							if (delta.reasoning_content) {
 								this.sendToWs({
-									type: 'plain',
-									data: chunk
+									type: 'thinking-chunk',
+									data: delta.reasoning_content
 								});
 							}
+							if (delta.content) {
+								this.sendToWs({
+									type: 'plain-chunk',
+									data: delta.content
+								});
+							}
+						}
 						} catch (e) {
 							// 忽略不完整的 JSON 或非 JSON 行
 						}
@@ -117,7 +125,7 @@ export class AgentService {
 		} catch (error) {
 			this.logger.error(error, '流式调用 AI 接口异常');
 			this.sendToWs({
-				type: 'plain',
+				type: 'plain-chunk',
 				data: '抱歉，与 AI 服务通信时出错。'
 			});
 		}
@@ -141,7 +149,7 @@ export class AgentService {
 		const currentUsername = user.username;
 		const permissionList = await this.permissionService.getPermissionsByUserId(user.id);
 
-		return `你是一个名为 "${pubEnv.PUBLIC_ORG_NAME}助手" 的企业管理系统助手。
+		return `你是一个名为 "${pubEnv.PUBLIC_ORG_NAME}助手" 的企业管理系统助手，使用中文思考回答。
 当前系统时间：${currentDateTime}
 当前登录用户：${currentUsername} (ID: ${user.id})
 用户当前拥有的权限列表：${permissionList.length > 0 ? permissionList.join(', ') : '没有任何权限'}

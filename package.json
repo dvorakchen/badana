@@ -60,6 +60,7 @@
 		"better-auth": "~1.6.5",
 		"drizzle-orm": "^0.45.2",
 		"luxon": "^3.7.2",
+		"marked": "^18.0.4",
 		"ofetch": "^1.5.1",
 		"openai": "^6.38.0",
 		"pino": "^10.3.1",

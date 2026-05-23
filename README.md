@@ -1,72 +1,72 @@
 # Badana
 
-A full-stack application template built with SvelteKit 5 + Better Auth + Drizzle ORM, featuring a responsive WebSocket architecture and a complete Docker deployment solution.
+A full-stack application template built on SvelteKit 5 + Better Auth + Drizzle ORM, integrating a reactive WebSocket service and a complete Docker deployment solution.
 
 ## 🌟 Features
 
-- **SvelteKit 5 (Runes)**: Leverages the latest rune system for ultimate reactive performance.
-- **Better Auth**: Robust authentication solution supporting email/password and phone login.
-- **Drizzle ORM**: Type-safe database operations with migration support and automatic generation.
+- **SvelteKit 5 (Runes)**: Utilizes the latest runes system for ultimate reactive performance.
+- **Better Auth**: Powerful authentication solution supporting email/password and phone number login.
+- **Drizzle ORM**: Type-safe database operations with support for migrations and schema generation.
 - **WebSocket Architecture**:
-  - **Dev Environment**: Vite plugin implementing HMR and business WS path separation.
+  - **Development**: Vite plugin implements HMR and separates business WS routes.
   - **Production**: Custom Node.js server for high-performance WS support.
-- **Dockerized Deployment**: Multi-stage Dockerfile and optimized Docker Compose configuration.
+- **Dockerized Deployment**: Pre-configured multi-stage Dockerfile and comprehensive Compose configuration.
 
 ## 🚀 Quick Start
 
-### 1. Prerequisites
+### 1. Environment Preparation
 
-Copy the environment template and fill in the necessary configurations:
+Copy the environment variable template and fill in the necessary configuration:
 
 ```bash
 cp .env.example .env
 ```
 
-### 2. Development
+### 2. Start Development Environment
 
 ```bash
 pnpm install
 pnpm dev
 ```
 
-URL: `http://localhost:5173`
-_WS URL: `ws://localhost:5173/ws`_
+Access URL: `http://localhost:5173`
+_WebSocket URL: `ws://localhost:5173/ws`_
 
 ### 3. Database Operations
 
 ```bash
-pnpm db:push      # Sync schema to database
-pnpm db:studio    # Open database GUI
+pnpm db:push      # Sync schema to the database
+pnpm db:studio    # Start visual database management
 ```
 
 ## 🐳 Docker Production Deployment
 
-The project is deeply optimized for Docker. Start the app and database with a single command:
+The project is highly optimized for Docker. Start the application and database with a single command:
 
 ```bash
 docker compose up --build -d
 ```
 
-Default URL: `http://127.0.0.1:3000`
+Default access URL: `http://127.0.0.1:3000`
 
-### Critical Environment Variables
+### Key Environment Variables
 
-In production, ensure these variables are correctly set in `compose.yaml`:
+In production, ensure the following variables are correctly configured in `compose.yaml`:
 
-- `ORIGIN`: The primary identity of the SvelteKit app (Required for CSRF checks).
-- `BETTER_AUTH_URL`: Base URL for authentication.
-- `PUBLIC_ORIGIN`: Base URL for client-side WebSocket connections.
+- `ORIGIN`: SvelteKit identity URL (Required to resolve CSRF checks).
+- `BETTER_AUTH_URL`: Better Auth base path.
+- `PUBLIC_ORIGIN`: Base URL for client WebSocket connections.
 - `ADMIN_DATABASE_URL`: Production database connection string.
 
-## 🛠️ Architecture Details
+## 🛠️ Technical Architecture Details
 
 ### WebSocket Implementation
 
-Uses "Path Separation". All business WebSocket connections request the `/ws` path to avoid conflicts with Vite's HMR service during development.
+The project uses a "Path Separation" approach. All business WebSocket connections request the `/ws` path uniformly, avoiding conflicts with Vite's HMR service in the development environment.
 
-### Production Entry Point (server.js)
+### Production Entry (server.js)
 
-Instead of the standard `node build`, we use `server.js` as the entry point. It manually mounts the WebSocket service and forwards HTTP requests to the SvelteKit Handler, ensuring WebSocket availability in `adapter-node` deployments.
+Unlike standard `node build`, we use a custom `server.js` as the entry point. It manually mounts the WebSocket server and routes HTTP requests to the SvelteKit Handler, ensuring WS remains available under the `adapter-node` deployment.
 
 ## 📜 License
 
@@ -74,29 +74,29 @@ Apache-2.0
 
 # Development Manual
 
-> Refer to the following manual when performing secondary development.
+> When undertaking secondary development, refer to the following manual.
 
 ## Database
 
-Uses PostgreSQL, heavily utilizing PG-specific capabilities such as `Row Level Security`. Dates use the `timestampz` format for convenient timezone tracking.
+Uses PostgreSQL and heavily utilizes PG-specific capabilities, such as `Row-Level Security`. Dates use the `timestampz` format to conveniently record timezone information.
 
-If you use other databases, you may encounter compatibility issues and need to adjust accordingly.
+If you plan to use a different database, you may encounter incompatibilities and will need to make manual adjustments.
 
 ## i18n
 
-Uses the solution provided by `paraglide`. Default languages are Chinese (zh) and English (en). To add other languages (e.g., `de`), translate `messages/{en,zh}.json` (AI recommendation), then add the new locale to the `locales` array in `project.inlang/settings.json`.
+Uses the solution provided by `paraglide`. The defaults include Chinese (zh) and English (en). If you need to add other languages, we recommend using AI to reference `messages/{en,zh}.json` and translate it into other languages, such as `de`. Then, add the new language to the `locales` array in `project.inlang/settings.json`.
 
-i18n in the database uses a JSON format:
+Database i18n uses JSON format:
 
 ```ts
 export type DbI18nField =
 	| {
 			/**
-			 * Default text to display when no locale-specific text is available.
+			 * Default text to display when no region-specific text is available
 			 */
 			default: string;
 			/**
-			 * Locale-specific text.
+			 * Regional text
 			 *
 			 * zh: Chinese
 			 * en: English
@@ -106,15 +106,15 @@ export type DbI18nField =
 	| { [K: string]: string };
 ```
 
-This is stored in database fields in JSON format. Use `i18nFromJSON(DbI18nField)` on the client to extract the text corresponding to the current locale.
+It is stored as JSON in database fields, and `i18nFromJSON(DbI18nField)` is used on the client side to extract the text corresponding to the current locale.
 
 ## Route Guards
 
-Configure which APIs do not require login authentication in `handleRouteProtected` within `hooks.server.ts`.
+Configure which APIs do not require login verification in `handleRouteProtected` within `hooks.server.ts`.
 
 ## Dependency Injection
 
-The dependency injection framework used is `tsyringe`. Refer to the documentation for specific usage.
+The dependency injection framework used is `tsyringe`. Refer to its documentation for specific usage.
 
 Example:
 
@@ -134,13 +134,13 @@ class RoleService {
 
 ## Styling
 
-Uses `DaisyUI`.
+Uses `DaisyUI`
 
 ## Components
 
 ### table.svelte
 
-The `table.svelte` component is recommended for displaying tables on the client side.
+It is recommended to use the `table.svelte` component to display tables on the client side.
 
 Example:
 
@@ -182,20 +182,20 @@ To display columns in the table, pass `columns`:
 
 ```ts
 export type Col = {
-	// Column field, the component will use this to retrieve data from 'list'
+	// Column field, the component will use this field to get the corresponding data in the list
 	field: string;
-	// Display name of the column
+	// Column display name
 	display: string;
 };
 ```
 
-Pass the table data to `list`:
+Pass the table list data to `list`:
 
 ```ts
 type list: T[]
 ```
 
-Example:
+For example:
 
 ```svelte
 <table
@@ -220,9 +220,9 @@ Example:
 ></table>
 ```
 
-By default, the `name` column will display the value of the `name` field for that row.
+By default, the `name` column will display the value of `name` from the row data in `list`.
 
-You can also pass a `Snippet` to override the default display behavior:
+You can also change the default display behavior by passing a `Snippet`:
 
 ```svelte
 <table
@@ -245,23 +245,23 @@ You can also pass a `Snippet` to override the default display behavior:
 		{ name: 'Resource', manager: 'Bab', memberCount: '5' }
 	]}
 >
-  <!-- When displaying 'manager', the following Snippet will be used -->
-  <!-- Originally displaying 'Alex', now displaying 'Bad Alex' -->
+  <!-- When displaying manager, the snippet below will be used -->
+   <!-- Originally displayed Alex, now displays Bad Alex -->
   {#snippet manager(row: RowType)}
 		{'Bad ' + row.manager}
 	{/snippet}
 </table>
 ```
 
-Note that the `actions` Snippet is reserved, so do not use `actions` as a field name in columns.
+However, the `actions` Snippet is reserved, so do not use the `actions` field in your columns.
 
-Pass `checkable={true}` to the `table` to display checkboxes on the left side:
+Pass `checkable={true}` to `table` to display checkboxes on the left side of the table.
 
 ```svelte
 <table checkable={true}></table>
 ```
 
-Use the `actions` Snippet to display action buttons on the far right of each row:
+Use the `actions` Snippet to display operation buttons on the far right of each row:
 
 ```svelte
 <table>
@@ -277,87 +277,88 @@ Use the `actions` Snippet to display action buttons on the far right of each row
 
 ### Input
 
-It is recommended to use the `Input` component from the `Components` directory for secondary development.
+It is recommended to use the `Input` component from Components for secondary development.
 
 ```svelte
-<!-- A blank input box -->
+<!-- An empty input box -->
 <Input />
 <!-- value is reactive -->
 <Input {value} />
-<!-- Display a label on the left side of the input box -->
+<!-- Display a label on the left side inside the input box -->
 <Input label={'Label'} />
-<!-- Display an X button on the right side to clear the content -->
+<!-- Display an X button on the right to clear content -->
 <Input clearable />
-<!-- Can map any attributes to the internal input element -->
+<!-- Any attributes can be mapped to the internal input -->
 <Input name="username" type="number" data-tip="Tip" />
 ```
 
 ### Modal
 
-Use `modal.svelte` for modal dialogs.
+Use `modal.svelte` for modals.
 
 ```svelte
 <script lang="ts">
 	let open = $state(false);
 </script>
 
-<!-- 'open' controls visibility; the modal unmounts when hidden -->
-<!-- Use 'className' to specify content styles directly -->
+<!-- open controls whether to display or not. When the modal is not displayed, it is unmounted -->
+<!-- Specify content styles directly in className -->
 <Modal bind:open className="grid ...">
-	<!-- 'title' snippet for the modal header -->
+	<!-- title snippet is the title of the modal -->
 	{#snippet title()}
 		Title
 	{/snippet}
 
-	<!-- 'content' snippet for the modal body -->
+	<!-- content snippet is the content of the modal -->
 	{#snippet content()}
 		Content!
 	{/snippet}
 </Modal>
 ```
 
-### DeleteConfirm
+### Delete Confirmation
 
-For actions requiring deletion confirmation, use `delete-confirm.svelte`.
+Deletions require confirmation, use `delete-confirm.svelte`.
 
 ```svelte
 <DeleteConfirm
-	label={'Delete'}
-	confirmLabel={'Confirm Delete?'}
+	size="sm"
+	label={'Delete Button'}
+	confirmLabel={'Confirm Delete'}
 	onDelete={() => {
-		// delete function
+		'Delete function';
 	}}
 />
 
-This component can also be used for other dangerous actions requiring confirmation.
+Any other dangerous operation buttons requiring confirmation can also use this component.
 ```
 
-### UserAvatar
+### User Avatar (UserAvatar)
 
-The `UserAvatar` component is used to display user profile pictures or placeholders.
+The `UserAvatar` component is used to display user avatars or placeholders.
 
 ```svelte
 <!-- Display avatar image -->
-<UserAvatar image="https://example.com/avatar.png" displayUsername="John Doe" size="40px" />
+<UserAvatar image="https://example.com/avatar.png" displayUsername="Zhang San" size="40px" />
 
-<!-- Display placeholder with the first letter of the username -->
+<!-- Display initial placeholder -->
 <UserAvatar displayUsername="Admin" size="32px" />
 ```
 
-- `image`: (Optional) URL of the avatar image.
-- `displayUsername`: (Required) Display name of the user.
-- `size`: (Optional) CSS width/height of the avatar, default is `32px`.
+- `image`: (Optional) The URL of the avatar image.
+- `displayUsername`: (Required) The user's display name.
+- `size`: (Optional) The CSS width and height of the avatar, defaults to `32px`.
 
 ## Permissions
 
-Defined permissions are hardcoded, meaning you cannot create a completely new permission out of thin air.
+Defined permissions are hardcoded in the codebase, meaning you cannot spawn a completely new permission out of nowhere.
 
-Permissions are defined in `shared/permissions.ts` within the `PERMISSIONS` object, and i18n mappings are set in `PERMISSION_LABELS`.
+Permissions are defined in `PERMISSIONS` within `shared/permissions.ts`, and the i18n mappings for permissions are set in `PERMISSION_LABELS`.
 
-Use `getPermissionLabel(permission)` to retrieve the localized permission text.
+Use `getPermissionLabel(permission)` to get the localized permission text.
 
 ## Testing
 
-Use the `.spec.ts` extension for both component and unit tests for consistency.
+It is recommended to use the `.spec.ts` extension for both component tests and unit tests, just for consistency.
 
-Import from `vitest/browser` instead of the deprecated `@vitest/browser/context`.
+Import `vitest/browser` instead of the deprecated `@vitest/browser/context`.

@@ -1,10 +1,9 @@
-import type { RxDataAiChat, TxDataAiChat } from '$lib/client/websocket/model';
+import type { RxDataAiChat, TxDataAiChat, TxDataAiChatTxtImgs } from '$lib/client/websocket/model';
 import { logger } from '$lib/server/logger';
 import { container } from 'tsyringe';
 import { AgentService } from '../agent';
 import type { TxData } from './model';
 import { type WebSocket } from 'ws';
-import { setTimeout } from 'node:timers/promises';
 import type { WebSocketWithUser } from '.';
 
 /**
@@ -26,7 +25,7 @@ import type { WebSocketWithUser } from '.';
 export async function handleAiChatMsg(ws: WebSocketWithUser, payload: TxDataAiChat) {
 	const { type, data } = payload;
 
-	if (!ws.user || !data?.txt) {
+	if (!ws.user || (type === 'txt-imgs' && !(data as any)?.txt)) {
 		// 发送 end 结束
 		sendAiChat(ws, {
 			type: 'end',
@@ -41,8 +40,9 @@ export async function handleAiChatMsg(ws: WebSocketWithUser, payload: TxDataAiCh
 	switch (type) {
 		case 'txt-imgs':
 			{
-				logger.info(`AI Chat Request from ${ws.user.username}: ${data.txt}`);
-				await agent.ask(ws.user, data.txt);
+				const d = data as TxDataAiChatTxtImgs;
+				logger.info(`AI Chat Request from ${ws.user.username}: ${d.txt}`);
+				await agent.ask(ws.user, d.txt);
 			}
 			break;
 

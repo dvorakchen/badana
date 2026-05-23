@@ -22,6 +22,7 @@ export type TxDataAiChat = {
 export type TxDataAiChatKeyValue = {
 	'txt-imgs': TxDataAiChatTxtImgs;
 	cancel: null;
+	'tool-confirm-result': { approved: boolean };
 };
 
 export type TxDataAiChatKey = keyof TxDataAiChatKeyValue;
@@ -61,7 +62,11 @@ export type RxDataAiChatKeyValue = {
 	/**
 	 * AI 返回的纯文本信息
 	 */
-	plain: string;
+	'plain-chunk': string;
+	'thinking-chunk': string;
+	'tool-call-start': { name: string; args: string };
+	'tool-call-end': { result: string };
+	'tool-call-confirm': { name: string; args: string };
 	/**
 	 * 取消当前会话
 	 */

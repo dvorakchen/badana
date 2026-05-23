@@ -1,2 +1,2 @@
 export * from './chatContext.svelte';
-export * from './chatBubble';
+export * from './chatBubble.svelte';

@@ -2,6 +2,9 @@ import type { Component, ComponentProps } from 'svelte';
 import UserQuestion from './user-question.svelte';
 import * as utils from '$lib/shared/utils';
 import Plain from './plain.svelte';
+import Thinking from './thinking.svelte';
+import ToolCall from './tool-call.svelte';
+import Confirm from './confirm.svelte';
 
 type SenderType = 'user' | 'ai';
 
@@ -11,14 +14,10 @@ type SenderType = 'user' | 'ai';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export class ChatBubble<C extends Component<any, any, any>> {
 	id: string = utils.uuid();
-	/**
-	 * 这是一个显示对话气泡样式的组件，由于AI的回答多种多样，包括工具调用、询问等各种，
-	 * 都需要不同的展示效果
-	 */
 	View: C;
-	props: ComponentProps<C>;
+	props: ComponentProps<C> = $state() as any;
 	sender: SenderType;
-	pending: boolean;
+	pending: boolean = $state(false);
 	replacable: boolean = false;
 
 	constructor(view: C, props: ComponentProps<C>, sender: SenderType, pending: boolean) {
@@ -29,18 +28,22 @@ export class ChatBubble<C extends Component<any, any, any>> {
 	}
 
 	static fromUser(txt: string, imgs: string[]) {
-		return new ChatBubble(
-			UserQuestion,
-			{
-				txt,
-				imgs
-			},
-			'user',
-			false
-		);
+		return new ChatBubble(UserQuestion, { txt, imgs }, 'user', false);
 	}
 
 	static plain(txt: string) {
-		return new ChatBubble(Plain, { txt }, 'ai', false);
+		return new ChatBubble(Plain, { txt }, 'ai', true);
+	}
+	
+	static thinking(txt: string = '') {
+		return new ChatBubble(Thinking, { txt, done: false }, 'ai', true);
+	}
+
+	static toolCall(name: string, args: string) {
+		return new ChatBubble(ToolCall, { name, args, done: false, result: '' }, 'ai', true);
+	}
+
+	static confirm(name: string, args: string, onApprove: () => void, onReject: () => void) {
+		return new ChatBubble(Confirm, { name, args, status: 'pending', onApprove, onReject }, 'ai', true);
 	}
 }
