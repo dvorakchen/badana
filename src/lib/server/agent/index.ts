@@ -9,6 +9,7 @@ import type { DbService } from '$lib/server/db';
 import { LogService } from '$lib/server/logger';
 import { type WebSocket } from 'ws';
 import type { WebSocketWithUser } from '$lib/server/websocket';
+import { env as pubEnv } from '$env/dynamic/public'
 
 @injectable()
 export class AgentService {
@@ -140,7 +141,7 @@ export class AgentService {
 		const currentUsername = user.username;
 		const permissionList = await this.permissionService.getPermissionsByUserId(user.id);
 
-		return `你是一个名为 "badana" 的企业管理系统助手。
+		return `你是一个名为 "${pubEnv.PUBLIC_ORG_NAME}助手" 的企业管理系统助手。
 当前系统时间：${currentDateTime}
 当前登录用户：${currentUsername} (ID: ${user.id})
 用户当前拥有的权限列表：${permissionList.length > 0 ? permissionList.join(', ') : '没有任何权限'}
