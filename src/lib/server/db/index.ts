@@ -40,6 +40,11 @@ export class AiDbService implements DbService {
 	 * 数据库连接实例，使用 Drizzle ORM 进行数据库操作。这个实例是全局单例的，可以在整个应用中共享。
 	 */
 	get db() {
+
+		if (!env.AGENT_DATABASE_URL) throw new Error('AGENT_DATABASE_URL is not set');
+		const client = postgres(env.AGENT_DATABASE_URL);
+		const db = drizzle(client, { schema });
+
 		return db;
 	}
 }
