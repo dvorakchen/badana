@@ -43,13 +43,23 @@ export async function seed() {
 				const agentPass = agentUrl.password;
 				// 创建给 agent 使用的数据库链接，只有查询权限
 				if (agentUser) {
-					const checkRole = await db.execute(sql`SELECT 1 FROM pg_roles WHERE rolname = ${agentUser}`);
+					const checkRole = await db.execute(
+						sql`SELECT 1 FROM pg_roles WHERE rolname = ${agentUser}`
+					);
 					if (checkRole.length === 0) {
 						logger.info(`⏳ Creating database read-only user: ${agentUser}...`);
-						await db.execute(sql.raw(`CREATE ROLE ${agentUser} WITH LOGIN PASSWORD '${agentPass}'`));
+						await db.execute(
+							sql.raw(`CREATE ROLE ${agentUser} WITH LOGIN PASSWORD '${agentPass}'`)
+						);
 						await db.execute(sql.raw(`GRANT USAGE ON SCHEMA public TO ${agentUser}`));
-						await db.execute(sql.raw(`GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${agentUser}`));
-						await db.execute(sql.raw(`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO ${agentUser}`));
+						await db.execute(
+							sql.raw(`GRANT SELECT ON ALL TABLES IN SCHEMA public TO ${agentUser}`)
+						);
+						await db.execute(
+							sql.raw(
+								`ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT SELECT ON TABLES TO ${agentUser}`
+							)
+						);
 						logger.info(`✅ Database read-only user created: ${agentUser}`);
 					} else {
 						logger.info(`ℹ️ Database user already exists: ${agentUser}`);

@@ -10,7 +10,7 @@ export class ChatContext {
 	public chatList: ChatBubble<Component<any>>[] = $state([]);
 	private _handling = $state(false);
 
-	private constructor() { }
+	private constructor() {}
 
 	get handling() {
 		return this._handling;
@@ -81,7 +81,12 @@ export class ChatContext {
 	addConfirm(name: string, args: string, onApprove: () => void, onReject: () => void) {
 		this.finishLast();
 
-		let bubble: ChatBubble<typeof Confirm>;
+		let bubble: ChatBubble<typeof Confirm> = ChatBubble.confirm(
+			name,
+			args,
+			() => {},
+			() => {}
+		);
 
 		const approve = () => {
 			bubble.props.status = 'approved';

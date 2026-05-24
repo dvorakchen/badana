@@ -15,9 +15,15 @@ import { aiChatSessions } from '$lib/server/db/ai.schema';
 import { eq, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { getTools } from './tool_call';
-import type { ChatCompletionMessageParam, ChatCompletionAssistantMessageParam, ChatCompletionToolMessageParam, ChatCompletionChunk, ChatCompletionMessageToolCall, ChatCompletionMessageFunctionToolCall } from 'openai/resources/index.mjs';
+import type {
+	ChatCompletionMessageParam,
+	ChatCompletionAssistantMessageParam,
+	ChatCompletionToolMessageParam,
+	ChatCompletionChunk,
+	ChatCompletionMessageToolCall,
+	ChatCompletionMessageFunctionToolCall
+} from 'openai/resources/index.mjs';
 import type { Stream } from 'openai/streaming.mjs';
-
 
 @injectable()
 export class AgentService {
@@ -66,9 +72,7 @@ export class AgentService {
 		const existingSessions = existingSessionsRaw.reverse();
 
 		const systemPrompt = await this.systemPrompt(user);
-		const baseMessages: ChatCompletionMessageParam[] = [
-			{ role: 'system', content: systemPrompt }
-		];
+		const baseMessages: ChatCompletionMessageParam[] = [{ role: 'system', content: systemPrompt }];
 
 		// 将历史 session 展平为上下文
 		for (const session of existingSessions) {
@@ -82,8 +86,6 @@ export class AgentService {
 
 		return baseMessages;
 	}
-
-
 
 	private async parseDeltaStream(stream: Stream<ChatCompletionChunk>) {
 		let textContent = '';
@@ -137,7 +139,9 @@ export class AgentService {
 		};
 	}
 
-	private async executeToolCalls(toolCalls: ChatCompletionMessageFunctionToolCall[]): Promise<ChatCompletionToolMessageParam[]> {
+	private async executeToolCalls(
+		toolCalls: ChatCompletionMessageFunctionToolCall[]
+	): Promise<ChatCompletionToolMessageParam[]> {
 		const results: ChatCompletionToolMessageParam[] = [];
 		for (const toolCall of toolCalls) {
 			this.logger.info(`正在执行工具: ${toolCall.function.name}`);
@@ -198,7 +202,7 @@ export class AgentService {
 						content: textContent || null,
 						tool_calls: toolCalls as ChatCompletionMessageToolCall[]
 					};
-					// @ts-ignore
+					// @ts-expect-error reasoning_content 属性是有的
 					if (reasoningContent) assistantMsg.reasoning_content = reasoningContent;
 
 					messages.push(assistantMsg);
@@ -218,7 +222,7 @@ export class AgentService {
 					role: 'assistant',
 					content: textContent || null
 				};
-				// @ts-ignore
+				// @ts-expect-error reasoning_content 属性是有的
 				if (reasoningContent) finalAssistantMsg.reasoning_content = reasoningContent;
 
 				messages.push(finalAssistantMsg);
@@ -238,7 +242,11 @@ export class AgentService {
 		}
 	}
 
-	private async appendChatSession(userId: string, sessionId: string, agentMessages: ChatCompletionMessageParam[]) {
+	private async appendChatSession(
+		userId: string,
+		sessionId: string,
+		agentMessages: ChatCompletionMessageParam[]
+	) {
 		await this.db.insert(aiChatSessions).values({
 			id: uuidv4(),
 			userId,
@@ -247,6 +255,7 @@ export class AgentService {
 		});
 	}
 
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	private sendToWs(payload: any) {
 		if (this.ws && this.ws.readyState === 1) {
 			this.ws.send(

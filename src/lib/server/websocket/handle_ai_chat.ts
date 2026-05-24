@@ -12,20 +12,20 @@ import type { WebSocketWithUser } from '.';
  * 所有逻辑处理完后需要发送一个：
  * ```
  * {
-        type: 'ai-chat',
-        payload: {
-            type: 'end',
-            data: null
-        }
-    }
+		type: 'ai-chat',
+		payload: {
+			type: 'end',
+			data: null
+		}
+	}
  * ```
 
-    给客户端表示 AI 回答完了你的对话
+	给客户端表示 AI 回答完了你的对话
  */
 export async function handleAiChatMsg(ws: WebSocketWithUser, payload: TxDataAiChat) {
 	const { type, data } = payload;
 
-	if (!ws.user || (type === 'txt-imgs' && !(data as any)?.txt)) {
+	if (!ws.user || (type === 'txt-imgs' && !(data as TxDataAiChatTxtImgs).txt)) {
 		// 发送 end 结束
 		sendAiChat(ws, {
 			type: 'end',

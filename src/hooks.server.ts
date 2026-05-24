@@ -114,7 +114,7 @@ export const handle: Handle = sequence(
 );
 
 if (!building) {
-	setupContainer()
+	setupContainer();
 	await runMigrations();
 	await seed();
 

@@ -10,7 +10,9 @@
 </script>
 
 <div class="flex w-full justify-end pb-4">
-	<div class="bg-base-200 text-base-content max-w-[85%] rounded-2xl px-5 py-3 shadow-sm whitespace-pre-wrap">
+	<div
+		class="max-w-[85%] rounded-2xl bg-base-200 px-5 py-3 whitespace-pre-wrap text-base-content shadow-sm"
+	>
 		{txt}
 	</div>
 </div>

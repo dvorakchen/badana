@@ -15,6 +15,7 @@ type SenderType = 'user' | 'ai';
 export class ChatBubble<C extends Component<any, any, any>> {
 	id: string = utils.uuid();
 	View: C;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	props: ComponentProps<C> = $state() as any;
 	sender: SenderType;
 	pending: boolean = $state(false);
@@ -34,7 +35,7 @@ export class ChatBubble<C extends Component<any, any, any>> {
 	static plain(txt: string) {
 		return new ChatBubble(Plain, { txt }, 'ai', true);
 	}
-	
+
 	static thinking(txt: string = '') {
 		return new ChatBubble(Thinking, { txt, done: false }, 'ai', true);
 	}
@@ -44,6 +45,11 @@ export class ChatBubble<C extends Component<any, any, any>> {
 	}
 
 	static confirm(name: string, args: string, onApprove: () => void, onReject: () => void) {
-		return new ChatBubble(Confirm, { name, args, status: 'pending', onApprove, onReject }, 'ai', true);
+		return new ChatBubble(
+			Confirm,
+			{ name, args, status: 'pending', onApprove, onReject },
+			'ai',
+			true
+		);
 	}
 }
