@@ -12,13 +12,12 @@ import type { WebSocketWithUser } from '$lib/server/websocket';
 import { env as pubEnv } from '$env/dynamic/public';
 import OpenAI from 'openai';
 import { aiChatSessions } from '$lib/server/db/ai.schema';
-import { eq, asc, desc } from 'drizzle-orm';
+import { eq, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
+import { getTools } from './tool_call';
+import type { ChatCompletionMessageParam, ChatCompletionAssistantMessageParam, ChatCompletionToolMessageParam, ChatCompletionChunk } from 'openai/resources/index.mjs';
+import type { Stream } from 'openai/streaming.mjs';
 
-type ChatCompletionMessageParam = import('openai/resources/index.mjs').ChatCompletionMessageParam;
-type ChatCompletionAssistantMessageParam = import('openai/resources/index.mjs').ChatCompletionAssistantMessageParam;
-type ChatCompletionToolMessageParam = import('openai/resources/index.mjs').ChatCompletionToolMessageParam;
-type StreamChatCompletionChunk = import('openai/streaming.mjs').Stream<import('openai/resources/index.mjs').ChatCompletionChunk>;
 
 @injectable()
 export class AgentService {
@@ -62,7 +61,7 @@ export class AgentService {
 			.where(eq(aiChatSessions.sessionId, sessionId))
 			.orderBy(desc(aiChatSessions.createdAt))
 			.limit(10);
-			
+
 		// 恢复正序，以便按时间先后顺序正确拼装历史上下文
 		const existingSessions = existingSessionsRaw.reverse();
 
@@ -84,20 +83,9 @@ export class AgentService {
 		return baseMessages;
 	}
 
-	private getTools(): import('openai/resources/index.mjs').ChatCompletionTool[] {
-		return [
-			{
-				type: 'function',
-				function: {
-					name: 'get_current_time',
-					description: '获取当前的服务器时间。',
-					parameters: { type: 'object', properties: {} }
-				}
-			}
-		];
-	}
 
-	private async parseDeltaStream(stream: StreamChatCompletionChunk) {
+
+	private async parseDeltaStream(stream: Stream<ChatCompletionChunk>) {
 		let textContent = '';
 		let reasoningContent = '';
 		const toolCallsMap = new Map<number, any>();
@@ -184,7 +172,7 @@ export class AgentService {
 		this.logger.debug({ sessionId }, 'session id');
 
 		const messages = await this.initMessages(user, sessionId, txt);
-		const tools = this.getTools();
+		const tools = getTools();
 		/**
 		 * 这是要存储数据库的这一轮对话
 		 */
