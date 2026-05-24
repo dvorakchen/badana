@@ -15,7 +15,7 @@ import { aiChatSessions } from '$lib/server/db/ai.schema';
 import { eq, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
 import { getTools } from './tool_call';
-import type { ChatCompletionMessageParam, ChatCompletionAssistantMessageParam, ChatCompletionToolMessageParam, ChatCompletionChunk } from 'openai/resources/index.mjs';
+import type { ChatCompletionMessageParam, ChatCompletionAssistantMessageParam, ChatCompletionToolMessageParam, ChatCompletionChunk, ChatCompletionMessageToolCall, ChatCompletionMessageFunctionToolCall } from 'openai/resources/index.mjs';
 import type { Stream } from 'openai/streaming.mjs';
 
 
@@ -88,7 +88,8 @@ export class AgentService {
 	private async parseDeltaStream(stream: Stream<ChatCompletionChunk>) {
 		let textContent = '';
 		let reasoningContent = '';
-		const toolCallsMap = new Map<number, any>();
+
+		const toolCallsMap = new Map<number, ChatCompletionMessageFunctionToolCall>();
 
 		for await (const chunk of stream) {
 			const delta = chunk.choices?.[0]?.delta;
@@ -110,7 +111,7 @@ export class AgentService {
 						const index = toolCall.index;
 						if (!toolCallsMap.has(index)) {
 							toolCallsMap.set(index, {
-								id: toolCall.id,
+								id: toolCall.id ?? '',
 								type: 'function',
 								function: { name: toolCall.function?.name || '', arguments: '' }
 							});
@@ -121,7 +122,7 @@ export class AgentService {
 						}
 
 						const existingCall = toolCallsMap.get(index);
-						if (toolCall.function?.arguments) {
+						if (existingCall && existingCall.function && toolCall.function?.arguments) {
 							existingCall.function.arguments += toolCall.function.arguments;
 						}
 					}
@@ -136,7 +137,7 @@ export class AgentService {
 		};
 	}
 
-	private async executeToolCalls(toolCalls: any[]): Promise<ChatCompletionToolMessageParam[]> {
+	private async executeToolCalls(toolCalls: ChatCompletionMessageFunctionToolCall[]): Promise<ChatCompletionToolMessageParam[]> {
 		const results: ChatCompletionToolMessageParam[] = [];
 		for (const toolCall of toolCalls) {
 			this.logger.info(`正在执行工具: ${toolCall.function.name}`);
@@ -195,7 +196,7 @@ export class AgentService {
 					const assistantMsg: ChatCompletionAssistantMessageParam = {
 						role: 'assistant',
 						content: textContent || null,
-						tool_calls: toolCalls
+						tool_calls: toolCalls as ChatCompletionMessageToolCall[]
 					};
 					// @ts-ignore
 					if (reasoningContent) assistantMsg.reasoning_content = reasoningContent;
@@ -224,12 +225,7 @@ export class AgentService {
 				agentMessages.push(finalAssistantMsg);
 
 				// 同步最终回答到数据库
-				await this.db.insert(aiChatSessions).values({
-					id: uuidv4(),
-					userId: user.id,
-					sessionId: sessionId,
-					agentMessages: agentMessages
-				});
+				await this.appendChatSession(user.id, sessionId, agentMessages);
 
 				break;
 			}
@@ -240,6 +236,15 @@ export class AgentService {
 				data: '抱歉，与 AI 服务通信时出错。'
 			});
 		}
+	}
+
+	private async appendChatSession(userId: string, sessionId: string, agentMessages: ChatCompletionMessageParam[]) {
+		await this.db.insert(aiChatSessions).values({
+			id: uuidv4(),
+			userId,
+			sessionId,
+			agentMessages
+		});
 	}
 
 	private sendToWs(payload: any) {
@@ -272,6 +277,10 @@ export class AgentService {
 1. **团队管理**：涉及团队的创建、查询和更新。
 2. **员工管理**：涉及员工档案的维护、入职（创建）、更新、离职处理（注销）以及状态管控（封禁/恢复）。
 3. **角色与权限**：管理系统中的角色及其关联的权限点。
+
+### 动态工具发现准则 (【极其重要】)
+作为一个超级 Agent，你本身只携带了极少量的基础工具。但系统内隐藏着大量高级工具（比如数据库查询、文件读写等）。
+**核心规则**：当用户要求你执行某项任务，而你发现当前可用的工具列表中没有匹配的工具时，**绝对不要**回答“我做不到”或“我没有相关工具”！你必须立即调用 \`search_tools\` 工具去系统工具库里搜索你需要的技能。只有当你调用了 \`search_tools\` 后，系统真的回复你“找不到相关工具”时，你才能告诉用户无法完成任务。
 
 ### 交互准则
 1. **权限意识**：在回答用户关于特定数据的查询或操作建议时，应参考其拥有的权限列表。如果用户尝试了解其无权访问的领域，请礼貌地指出权限限制。
