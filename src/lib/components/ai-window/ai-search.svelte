@@ -11,7 +11,8 @@
 	import Modal from '$lib/components/modal.svelte';
 
 	let open = $state(false);
-	let chatContext: ChatContext = ChatContext.new();
+	let chatContext = $state(ChatContext.new());
+	let sessionId = $state('');
 
 	onMount(() => {
 		wsClient.connect();
@@ -31,6 +32,10 @@
 	};
 
 	function openDialog() {
+		if (!open) {
+			sessionId = crypto.randomUUID();
+			chatContext = ChatContext.new();
+		}
 		open = true;
 		focusUserInput();
 	}
@@ -49,6 +54,7 @@
 		wsClient.send('ai-chat', {
 			type: 'txt-imgs',
 			data: {
+				sessionId,
 				txt,
 				imgs
 			}

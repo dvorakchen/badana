@@ -29,6 +29,7 @@ export type TxDataAiChatKey = keyof TxDataAiChatKeyValue;
 export type TxDataAiChatValue = TxDataAiChatKeyValue[keyof TxDataAiChatKeyValue];
 
 export type TxDataAiChatTxtImgs = {
+	sessionId: string;
 	txt: string;
 	/**
 	 * 图片连接

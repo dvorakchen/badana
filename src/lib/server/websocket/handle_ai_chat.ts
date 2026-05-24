@@ -42,7 +42,7 @@ export async function handleAiChatMsg(ws: WebSocketWithUser, payload: TxDataAiCh
 			{
 				const d = data as TxDataAiChatTxtImgs;
 				logger.info(`AI Chat Request from ${ws.user.username}: ${d.txt}`);
-				await agent.ask(ws.user, d.txt);
+				await agent.ask(ws.user, d.sessionId, d.txt);
 			}
 			break;
 
