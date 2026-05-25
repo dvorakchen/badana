@@ -15,11 +15,11 @@
 
 	$effect(() => {
 		// Auto scroll on content updates
-		// const last = chatList[chatList.length - 1];
+		const last = chatList[chatList.length - 1];
 		// Create dependencies for the effect to re-run
-		// const _txt = (last?.props as any)?.txt;
-		// const _res = (last?.props as any)?.result;
-		// const _len = chatList.length;
+		void (last?.props as { txt: string })?.txt;
+		void (last?.props as { result: string })?.result;
+		void chatList.length;
 
 		if (scrollContainer) {
 			requestAnimationFrame(() => {

@@ -1,4 +1,19 @@
-/// 这里是 AI Agent 的实现
+/**
+ * AI Agent 核心实现
+ *
+ * ## 整体流程
+ * 1. 用户通过 WebSocket 发送文本 → handleAiChatMsg 调用 agent.ask()
+ * 2. ask() 组装消息（system prompt + 历史会话 + 本轮提问）
+ * 3. 进入 while(true) 循环与 AI 交互：
+ *    - 调用 AI API（流式），实时推送文本/思考/工具调用到前端
+ *    - 如果 AI 返回工具调用 → 执行工具 → 结果追加到消息列表 → 继续循环
+ *    - 如果 AI 无工具调用 → 回答完成 → 保存会话到数据库 → 退出循环
+ *
+ * ## 动态工具加载
+ * 每轮对话只加载 base 工具（get_current_time + search_tools）。
+ * 当 AI 需要其他工具时调用 search_tools(query)，
+ * 系统搜索工具注册表并将匹配工具注入下一轮 API 调用。
+ */
 
 import { inject, injectable } from 'tsyringe';
 import { env } from '$env/dynamic/private';
@@ -14,7 +29,8 @@ import OpenAI from 'openai';
 import { aiChatSessions } from '$lib/server/db/ai.schema';
 import { eq, desc } from 'drizzle-orm';
 import { v4 as uuidv4 } from 'uuid';
-import { getTools } from './tool_call';
+import { ToolRegistry, type ToolExecuteContext } from './tool-registry';
+import type { ToolEntry } from './tool-registry';
 import type {
 	ChatCompletionMessageParam,
 	ChatCompletionAssistantMessageParam,
@@ -24,6 +40,7 @@ import type {
 	ChatCompletionMessageFunctionToolCall
 } from 'openai/resources/index.mjs';
 import type { Stream } from 'openai/streaming.mjs';
+import { searchToolsTool } from './tools/search-tools';
 
 @injectable()
 export class AgentService {
@@ -32,16 +49,17 @@ export class AgentService {
 	private ws: WebSocket | undefined;
 
 	/**
-	 * AI 使用的数据库绝对不能有删除的权限
+	 * AI Agent 使用只读数据库连接，防止 AI 执行删除/修改操作
 	 */
 	private get db() {
 		return this.dbService.db;
 	}
 
 	constructor(
-		@inject('AiDbService') private dbService: DbService,
+		@inject('NormalDbService') private dbService: DbService,
 		private permissionService: PermissionService,
-		private logger: LogService
+		private logger: LogService,
+		private toolRegistry: ToolRegistry
 	) {
 		this.model = env.AGENT_MODEL ?? '';
 		this.openai = new OpenAI({
@@ -50,15 +68,19 @@ export class AgentService {
 		});
 	}
 
+	/**
+	 * 绑定当前 WebSocket 连接，用于向该客户端推送流式内容
+	 */
 	setWs(ws: WebSocketWithUser) {
 		this.ws = ws;
 	}
 
 	/**
-	 * 初始化对话信息
-	 * @param user 当前用户，必须登录
-	 * @param txt 用户的提问，文本
-	 * @param img 用户可能提交了图片，不实现
+	 * 拼装发送给 AI 的完整消息列表
+	 *
+	 * 结构: [system prompt] + [历史会话(最近10轮)] + [本轮用户提问]
+	 * 历史会话从 ai_chat_sessions 表按 sessionId 查出，
+	 * 取最近 10 条后反转为时间正序，展平 agentMessages 拼入上下文。
 	 */
 	private async initMessages(user: User, sessionId: string, txt: string) {
 		const existingSessionsRaw = await this.db
@@ -68,25 +90,37 @@ export class AgentService {
 			.orderBy(desc(aiChatSessions.createdAt))
 			.limit(10);
 
-		// 恢复正序，以便按时间先后顺序正确拼装历史上下文
+		// 数据库按时间倒序查出，反转后变正序，保证对话历史按先后排列
 		const existingSessions = existingSessionsRaw.reverse();
 
 		const systemPrompt = await this.systemPrompt(user);
 		const baseMessages: ChatCompletionMessageParam[] = [{ role: 'system', content: systemPrompt }];
 
-		// 将历史 session 展平为上下文
+		// 将历史 session 的 agentMessages 展平拼入消息列表
 		for (const session of existingSessions) {
 			if (session.agentMessages && session.agentMessages.length > 0) {
 				baseMessages.push(...(session.agentMessages as ChatCompletionMessageParam[]));
 			}
 		}
 
-		// 把本轮专属消息合并到全局上下文中提交给模型
+		// 最后追加本轮用户提问
 		baseMessages.push({ role: 'user', content: txt });
 
 		return baseMessages;
 	}
 
+	/**
+	 * 解析 AI 返回的流式响应
+	 *
+	 * AI 的回复是一块一块(chunk)到达的，每块只包含增量(delta)。
+	 * 这个方法遍历所有 chunk，从中提取三类内容：
+	 * - textContent:      普通文本（累加所有 delta.content）
+	 * - reasoningContent: 思考过程（累加所有 delta.reasoning_content）
+	 * - toolCalls:        工具调用（按 index 归并碎片，因为一个工具调用的
+	 *                      name 和 arguments 可能分散在多个 chunk 中）
+	 *
+	 * 每收到一块内容就实时推送到前端（sendToWs），实现打字机效果。
+	 */
 	private async parseDeltaStream(stream: Stream<ChatCompletionChunk>) {
 		let textContent = '';
 		let reasoningContent = '';
@@ -96,18 +130,18 @@ export class AgentService {
 		for await (const chunk of stream) {
 			const delta = chunk.choices?.[0]?.delta;
 			if (delta) {
-				// 1. 处理思考过程
+				// 思考过程（部分模型支持，如 qwen3.6）
 				if ((delta as { reasoning_content: string }).reasoning_content) {
 					const r = (delta as { reasoning_content: string }).reasoning_content;
 					reasoningContent += r;
 					this.sendToWs({ type: 'thinking-chunk', data: r });
 				}
-				// 2. 处理普通文本
+				// 普通文本
 				if (delta.content) {
 					textContent += delta.content;
 					this.sendToWs({ type: 'plain-chunk', data: delta.content });
 				}
-				// 3. 处理工具调用碎片
+				// 工具调用碎片：按 index 归并，同一 index 的多块碎片拼接成完整调用
 				if (delta.tool_calls) {
 					for (const toolCall of delta.tool_calls) {
 						const index = toolCall.index;
@@ -139,52 +173,124 @@ export class AgentService {
 		};
 	}
 
+	/**
+	 * 执行 AI 请求的工具调用
+	 *
+	 * 分两种工具处理：
+	 *
+	 * 1. search_tools —— 动态工具发现
+	 *    AI 传入 query 参数搜索工具注册表，匹配到的工具名注入
+	 *    activeDynamicTools 集合。下一轮 while 循环中这些工具会
+	 *    出现在 API 调用的 tools 数组里，AI 就能直接调用它们了。
+	 *    返回给 AI 的是匹配工具的列表文本（名称+描述+分类）。
+	 *
+	 * 2. 其他工具 —— 从注册表取执行函数
+	 *    通过 toolRegistry.getExecutor(name) 查找对应的执行函数，
+	 *    传入工具参数 + 上下文(user)，执行并返回结果文本。
+	 *
+	 * @returns toolResults   —— 返回给 AI 的工具执行结果
+	 * @returns newToolNames  —— 本次新加载的工具名（由 search_tools 触发）
+	 */
 	private async executeToolCalls(
-		toolCalls: ChatCompletionMessageFunctionToolCall[]
-	): Promise<ChatCompletionToolMessageParam[]> {
-		const results: ChatCompletionToolMessageParam[] = [];
-		for (const toolCall of toolCalls) {
-			this.logger.info(`正在执行工具: ${toolCall.function.name}`);
-			let result = 'Unknown tool';
+		toolCalls: ChatCompletionMessageFunctionToolCall[],
+		activeDynamicTools: Set<string>,
+		user: User
+	) {
+		const toolResults: ChatCompletionToolMessageParam[] = [];
+		const newToolNames: string[] = [];
+		const ctx: ToolExecuteContext = { user, db: this.db };
 
-			if (toolCall.function.name === 'get_current_time') {
-				result = `服务器当前时间是: ${new Date().toISOString()}`;
+		for (const toolCall of toolCalls) {
+			const name = toolCall.function.name;
+			this.logger.info(`正在执行工具: ${name}`);
+			let result: string;
+
+			if (name === searchToolsTool.name) {
+				// --- 动态工具发现 ---
+				const args = JSON.parse(toolCall.function.arguments || '{}');
+				const query = args.query ?? '';
+				const matched = this.toolRegistry.search(query);
+
+				if (matched.length === 0) {
+					result = '未找到相关工具。请告知用户当前系统没有对应的功能，并建议用户联系管理员。';
+				} else {
+					// 将匹配工具注入本轮对话的动态工具集，下次 API 调用生效
+					for (const entry of matched) {
+						if (!activeDynamicTools.has(entry.name)) {
+							activeDynamicTools.add(entry.name);
+							newToolNames.push(entry.name);
+							this.logger.info(`动态加载工具: ${entry.name}`);
+						}
+					}
+					result = formatSearchResults(matched);
+				}
+			} else {
+				// --- 常规工具执行 ---
+				const executor = this.toolRegistry.getExecutor(name);
+				if (executor) {
+					try {
+						const args = JSON.parse(toolCall.function.arguments || '{}');
+						result = await executor(args, ctx);
+					} catch (err) {
+						this.logger.error(err, `工具 ${name} 执行失败`);
+						result = `工具执行出错: ${(err as Error).message}`;
+					}
+				} else {
+					result = `未知工具: ${name}`;
+				}
 			}
 
-			// 通知前端执行完毕
+			// 通知前端工具执行完毕
 			this.sendToWs({
 				type: 'tool-call-end',
 				data: { result }
 			});
 
-			// 返回工具执行结果
-			results.push({
+			// 工具结果作为 tool 角色消息追加到对话
+			toolResults.push({
 				role: 'tool',
 				tool_call_id: toolCall.id,
 				content: result
 			});
 		}
-		return results;
+
+		return { toolResults, newToolNames };
 	}
 
 	/**
-	 * 和 AI 对话
-	 * @param user 当前用户，必须登录
-	 * @param txt 用户的提问，文本
-	 * @param img 用户可能提交了图片，不实现
+	 * 处理一次用户提问（AI 对话的主入口）
+	 *
+	 * ## 流程
+	 * 1. 拼装消息（system + 历史 + 本轮提问）
+	 * 2. 进入 while(true) 循环：
+	 *    a. 构建当前可用工具列表 = base 工具 + 本轮已动态加载的工具
+	 *    b. 流式调用 AI API，实时推送内容到前端
+	 *    c. 如果 AI 返回工具调用 → 执行工具（search_tools 会注入新工具）→ continue
+	 *    d. 如果 AI 无工具调用 → 回答完毕 → 保存会话到数据库 → break
+	 *
+	 * ## 关键变量
+	 * - activeDynamicTools: 对话级 Set<string>，记录 search_tools 在本对话中
+	 *   已加载的工具名。每次循环和 base 工具合并后作为 API 的 tools 参数。
+	 *   对话结束后自动销毁，不同对话互不干扰。
+	 * - agentMessages: 单独记录本轮对话中新增的消息（提问 + 回复 + 工具调用），
+	 *   最终整段存入 ai_chat_sessions 表，下次对话作为历史上下文加载。
 	 */
 	async ask(user: User, sessionId: string, txt: string /*img: string[]*/) {
 		this.logger.debug({ sessionId }, 'session id');
 
 		const messages = await this.initMessages(user, sessionId, txt);
-		const tools = getTools();
-		/**
-		 * 这是要存储数据库的这一轮对话
-		 */
 		const agentMessages: ChatCompletionMessageParam[] = [{ role: 'user', content: txt }];
+
+		// 本轮对话动态加载的工具名集合，每次 while 迭代时和 base 工具合并
+		const activeDynamicTools = new Set<string>();
 
 		try {
 			while (true) {
+				// 每次迭代重新构建工具列表：base（始终可用）+ 动态加载的
+				const baseNames = this.toolRegistry.getBaseToolNames();
+				const allActiveNames = new Set([...baseNames, ...activeDynamicTools]);
+				const tools = this.toolRegistry.getDefinitions(allActiveNames);
+
 				const stream = await this.openai.chat.completions.create({
 					model: this.model,
 					messages: messages,
@@ -194,9 +300,9 @@ export class AgentService {
 
 				const { textContent, reasoningContent, toolCalls } = await this.parseDeltaStream(stream);
 
-				// 判断是否有工具被调用
+				// AI 返回了工具调用 → 执行工具，结果加入消息列表，继续循环
 				if (toolCalls.length > 0) {
-					// 将大模型“想要调用工具”的决定存入上下文
+					// 将 AI 的工具调用意图作为 assistant 消息存入上下文
 					const assistantMsg: ChatCompletionAssistantMessageParam = {
 						role: 'assistant',
 						content: textContent || null,
@@ -208,16 +314,15 @@ export class AgentService {
 					messages.push(assistantMsg);
 					agentMessages.push(assistantMsg);
 
-					// 依次执行工具
-					const toolResultMessages = await this.executeToolCalls(toolCalls);
-					messages.push(...toolResultMessages);
-					agentMessages.push(...toolResultMessages);
+					// 执行工具（search_tools 会修改 activeDynamicTools，下轮生效）
+					const execResult = await this.executeToolCalls(toolCalls, activeDynamicTools, user);
+					messages.push(...execResult.toolResults);
+					agentMessages.push(...execResult.toolResults);
 
-					// 工具执行完毕，携带结果进入下一轮循环，让 AI 继续回答
 					continue;
 				}
 
-				// 没有工具调用，说明 AI 已经回答完毕
+				// AI 无工具调用 → 回答完毕
 				const finalAssistantMsg: ChatCompletionAssistantMessageParam = {
 					role: 'assistant',
 					content: textContent || null
@@ -228,7 +333,7 @@ export class AgentService {
 				messages.push(finalAssistantMsg);
 				agentMessages.push(finalAssistantMsg);
 
-				// 同步最终回答到数据库
+				// 保存本轮对话到数据库，下次对话复用历史上下文
 				await this.appendChatSession(user.id, sessionId, agentMessages);
 
 				break;
@@ -242,19 +347,31 @@ export class AgentService {
 		}
 	}
 
+	/**
+	 * 将本轮对话消息存入 ai_chat_sessions 表
+	 * agentMessages 格式兼容 OpenAI ChatCompletionMessageParam，
+	 * 下次对话时直接展平拼入上下文即可。
+	 */
 	private async appendChatSession(
 		userId: string,
 		sessionId: string,
 		agentMessages: ChatCompletionMessageParam[]
 	) {
-		await this.db.insert(aiChatSessions).values({
-			id: uuidv4(),
-			userId,
-			sessionId,
-			agentMessages
-		});
+		try {
+			await this.db.insert(aiChatSessions).values({
+				id: uuidv4(),
+				userId,
+				sessionId,
+				agentMessages
+			});
+		} catch (error) {
+			this.logger.error(error, '将本轮对话消息存入 ai_chat_sessions 表失败');
+		}
 	}
 
+	/**
+	 * 向当前 WebSocket 客户端推送消息，格式为 { type: 'ai-chat', payload }
+	 */
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	private sendToWs(payload: any) {
 		if (this.ws && this.ws.readyState === 1) {
@@ -267,6 +384,10 @@ export class AgentService {
 		}
 	}
 
+	/**
+	 * 生成系统提示词
+	 * 包含当前时间、登录用户、用户权限列表、工具发现规则、交互准则
+	 */
 	private async systemPrompt(user: User) {
 		const currentDateTime = DateTime.now()
 			.setZone('Asia/Shanghai')
@@ -288,8 +409,14 @@ export class AgentService {
 3. **角色与权限**：管理系统中的角色及其关联的权限点。
 
 ### 动态工具发现准则 (【极其重要】)
-作为一个超级 Agent，你本身只携带了极少量的基础工具。但系统内隐藏着大量高级工具（比如数据库查询、文件读写等）。
-**核心规则**：当用户要求你执行某项任务，而你发现当前可用的工具列表中没有匹配的工具时，**绝对不要**回答“我做不到”或“我没有相关工具”！你必须立即调用 \`search_tools\` 工具去系统工具库里搜索你需要的技能。只有当你调用了 \`search_tools\` 后，系统真的回复你“找不到相关工具”时，你才能告诉用户无法完成任务。
+系统内有两个数据库万能工具：
+- \`query_database\`: 执行 SELECT 查询，获取任何数据
+- \`describe_database\`: 获取所有表名和字段结构
+**核心规则**：
+1. 当需要数据查询时，先调用 \`search_tools\` **一次**，搜索是否有专用工具。
+2. 若 \`search_tools\` 没有找到匹配的专用工具 → **不要再搜第二次**！**不要再搜第二次**！**不要再搜第二次**！立即加载 \`describe_database\` 和 \`query_database\`，直接写 SQL 查询数据库。
+3. 编写 SQL 之前，必须先调用 \`describe_database\` 了解表名和字段名，**绝对不要猜测表名**。
+4. 只有当数据库查询也因为权限不足等原因失败时，才能告知用户无法完成。
 
 ### 交互准则
 1. **权限意识**：在回答用户关于特定数据的查询或操作建议时，应参考其拥有的权限列表。如果用户尝试了解其无权访问的领域，请礼貌地指出权限限制。
@@ -300,4 +427,32 @@ export class AgentService {
 
 请基于以上背景信息，协助用户完成其请求。`;
 	}
+}
+
+/**
+ * 将 search_tools 的匹配结果格式化为 AI 可读的文本
+ * 每行列出工具名、描述、分类，AI 据此决定下一步调用哪个工具
+ */
+function formatSearchResults(entries: ToolEntry[]): string {
+	const lines = entries.map((e) => {
+		const params = e.definition.function.parameters as Record<string, unknown> | undefined;
+		const props = params?.properties as
+			| Record<string, { type?: string; description?: string }>
+			| undefined;
+
+		let paramStr = '';
+		if (props) {
+			const required = (params?.required as string[]) ?? [];
+			paramStr = Object.entries(props)
+				.map(([name, prop]) => {
+					const req = required.includes(name) ? '(必填)' : '(可选)';
+					return `${name}: ${prop.type ?? 'unknown'} ${req}`;
+				})
+				.join(', ');
+		}
+
+		const paramLine = paramStr ? `\n    参数: ${paramStr}` : '';
+		return `- \`${e.name}\`: ${e.definition.function.description} [${e.category}]${paramLine}`;
+	});
+	return `找到以下 ${entries.length} 个工具，你现在可以调用它们了:\n${lines.join('\n')}`;
 }

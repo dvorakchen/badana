@@ -83,7 +83,6 @@ export async function seed() {
 	}
 
 	const password = '123123123';
-	// ... 剩余代码保持不变 ...
 
 	// 1. 定义权限集合
 	const allPermissions = [
