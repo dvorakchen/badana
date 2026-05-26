@@ -7,6 +7,8 @@ import { svelteKitHandler } from 'better-auth/svelte-kit';
 import { redirect, type Handle } from '@sveltejs/kit';
 import { getTextDirection } from '$lib/paraglide/runtime';
 import { paraglideMiddleware } from '$lib/paraglide/server';
+import { env } from '$env/dynamic/private';
+import { resolve } from 'node:path';
 import { logger } from '$lib/server/logger';
 import { runMigrations, seed } from '$lib/server/db/seed';
 import { initWebSocket } from '$lib/server/websocket';
@@ -119,4 +121,7 @@ if (!building) {
 	await seed();
 
 	initWebSocket();
+
+	const skillsPath = env.AGENT_SKILLS_DIR ? resolve(env.AGENT_SKILLS_DIR) : '(未设置)';
+	logger.info({ path: skillsPath }, 'Skills directory');
 }
