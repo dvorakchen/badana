@@ -6,11 +6,6 @@ import { env } from '$env/dynamic/private';
 const SKILLS_DIR = env.AGENT_SKILLS_DIR ?? '';
 const VALID_SKILL_NAME = /^[\w一-鿿-]+$/;
 
-function stripFrontmatter(content: string) {
-	const match = content.match(/^---\n[\s\S]*?\n---\n?/);
-	return match ? content.slice(match[0].length).trimStart() : content;
-}
-
 export const loadSkillTool: ToolEntry = {
 	name: 'load_skill',
 	definition: {
@@ -64,7 +59,7 @@ export const loadSkillTool: ToolEntry = {
 			if (!content.trim()) {
 				return `技能 "${skillName}" 文件内容为空。`;
 			}
-			return stripFrontmatter(content);
+			return content;
 		} catch (err) {
 			return `读取技能文件失败: ${(err as Error).message}`;
 		}

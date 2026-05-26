@@ -7,6 +7,15 @@ description: 数据查询与展示技能，使用 query_database 执行查询并
 
 - query_database — 执行任意 SELECT 查询（包括查询数据库 schema）
 
+**调用格式**：
+\`query_database\` **只有一个参数 \`query\`**，不要传 \`params\` 或其他字段：
+
+```json
+{ "query": "SELECT ..." }
+```
+
+**常见错误**：不要写成 \`{"query": "...", "params": []}\`，\`params\` 字段不存在，会导致调用失败。
+
 ## 工作流程
 
 1. **先查结构**：用户描述查询需求后，先通过 pg_catalog 了解数据库结构：
@@ -24,8 +33,15 @@ description: 数据查询与展示技能，使用 query_database 执行查询并
      WHERE c.relname = '{表名}' AND a.attnum > 0 AND NOT a.attisdropped
      ORDER BY a.attnum
      ```
-2. **编写 SQL**：确认表名和字段后，编写 SELECT 查询，只查必要的字段。
-3. **执行查询**：调用 \`query_database\` 执行 SQL。
+2. **编写 SQL**：根据第 1 步确认的表名和字段名编写 SELECT 查询。
+3. **反复检查 SQL（必须执行）**：
+   - pg_catalog 查询**必须原样照抄上方模板**，不得凭记忆重写。常见错误：\`a.attmod\`（不存在，正确的是 \`a.atttypmod\`）。
+   - pg_catalog 查询**不要加 LIMIT**，模板里没有就不要加。
+   - 表名和字段名是否与第 1 步查到的**完全一致**（大小写、下划线、单复数）？
+   - 字段是否真实存在于此表中？**不要凭空推测字段名**。
+   - JOIN 条件是否正确关联了两张表？
+   - WHERE 条件的值类型是否匹配字段类型（字符串加引号、数字不加）？
+4. **执行查询**：确认 SQL 无误后，调用 `query_database` 执行。
 
 ## 输出格式要求（重要）
 
