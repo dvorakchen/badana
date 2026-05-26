@@ -39,7 +39,7 @@ import type {
 } from 'openai/resources/index.mjs';
 import type { Stream } from 'openai/streaming.mjs';
 import { searchToolsTool } from './tools/search-tools';
-import { systemPrompt } from './prompt';
+import { systemPrompt, skillDiscoveryPrompt } from './prompt';
 
 @injectable()
 export class AgentService {
@@ -103,7 +103,8 @@ export class AgentService {
 			}
 		}
 
-		// 最后追加本轮用户提问
+		// 技能发现准则插在用户提问之前，确保每次提问 AI 都重新看到
+		baseMessages.push({ role: 'system', content: skillDiscoveryPrompt() });
 		baseMessages.push({ role: 'user', content: txt });
 
 		return baseMessages;

@@ -32,6 +32,106 @@ export async function runMigrations() {
 	}
 }
 
+/**
+ * 为数据库表和字段添加注释（COMMENT ON TABLE / COMMENT ON COLUMN）。
+ * 注释存储在 pg_catalog.pg_description 中，AI 通过 pg_catalog 查询表结构时
+ * 可以看到这些注释，从而理解每张表和每个字段的业务含义，无需猜测。
+ */
+async function addComments() {
+	const comments: { table: string; comment?: string; columns?: Record<string, string> }[] = [
+		{
+			table: 'user',
+			comment: '系统用户表，存储所有用户基本信息',
+			columns: {
+				id: '用户唯一标识',
+				name: '用户姓名',
+				email: '登录邮箱，唯一',
+				email_verified: '邮箱是否已验证',
+				image: '用户头像 URL',
+				created_at: '创建时间',
+				updated_at: '最后更新时间',
+				username: '用户名，用于登录和系统内显示',
+				display_username: '展示用户名',
+				phone_number: '手机号，唯一',
+				phone_number_verified: '手机号是否已验证',
+				banned: '是否已被封禁',
+				ban_reason: '封禁原因',
+				ban_expires: '封禁过期时间',
+				removed: '是否已离职/注销'
+			}
+		},
+		{
+			table: 'role',
+			comment: '角色表，定义角色及其权限集合（RBAC）',
+			columns: {
+				id: '角色唯一标识',
+				name: '角色名称（多语言 JSON）',
+				permissions: '角色拥有的权限列表（字符串数组）',
+				created_at: '创建时间',
+				updated_at: '最后更新时间'
+			}
+		},
+		{
+			table: 'user_role',
+			comment: '用户-角色关联表，多对多关系',
+			columns: {
+				id: '关联记录唯一标识',
+				user_id: '用户 ID，关联 user 表',
+				role_id: '角色 ID，关联 role 表',
+				created_at: '分配时间'
+			}
+		},
+		{
+			table: 'team',
+			comment: '团队表，存储组织架构中的团队信息',
+			columns: {
+				id: '团队唯一标识',
+				name: '团队名称（多语言 JSON）',
+				manager_id: '团队负责人 ID，关联 user 表',
+				created_at: '创建时间',
+				updated_at: '最后更新时间'
+			}
+		},
+		{
+			table: 'team_user',
+			comment: '团队-用户关联表，多对多关系，等同于部门',
+			columns: {
+				id: '关联记录唯一标识',
+				team_id: '团队 ID，关联 team 表',
+				user_id: '用户 ID，关联 user 表',
+				created_at: '加入时间'
+			}
+		},
+		{
+			table: 'task',
+			comment: '任务表（示例/测试用）',
+			columns: {
+				id: '任务唯一标识',
+				title: '任务标题',
+				priority: '优先级，数字越大越高'
+			}
+		}
+	];
+
+	try {
+		for (const { table, comment, columns } of comments) {
+			if (comment) {
+				await db.execute(sql.raw(`COMMENT ON TABLE "${table}" IS '${comment.replace(/'/g, "''")}'`));
+			}
+			if (columns) {
+				for (const [col, desc] of Object.entries(columns)) {
+					await db.execute(
+						sql.raw(`COMMENT ON COLUMN "${table}"."${col}" IS '${desc.replace(/'/g, "''")}'`)
+					);
+				}
+			}
+		}
+		logger.info('✅ Database comments added.');
+	} catch (error) {
+		logger.warn(error, '⚠️ Failed to add database comments. Skipping...');
+	}
+}
+
 export async function seed() {
 	try {
 		logger.info('⏳ Seeding database...');
@@ -76,6 +176,8 @@ export async function seed() {
 		logger.warn(error, '⚠️ Database not ready for seeding. Skipping...');
 		return;
 	}
+
+	await addComments();
 
 	if (await db.query.user.findFirst()) {
 		logger.info('ℹ️ Users already exist. Skipping seeding.');

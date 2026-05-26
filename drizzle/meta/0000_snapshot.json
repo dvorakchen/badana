@@ -1,5 +1,5 @@
 {
-  "id": "e3edcdea-799e-4eb4-97bb-20a8c651105a",
+  "id": "61b8c7ac-3fb2-4f97-9414-e3d369417fe3",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -744,6 +744,65 @@
           "tableTo": "role",
           "columnsFrom": [
             "role_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.ai_chat_sessions": {
+      "name": "ai_chat_sessions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "session_id": {
+          "name": "session_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "agent_messages": {
+          "name": "agent_messages",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "ai_chat_sessions_user_id_user_id_fk": {
+          "name": "ai_chat_sessions_user_id_user_id_fk",
+          "tableFrom": "ai_chat_sessions",
+          "tableTo": "user",
+          "columnsFrom": [
+            "user_id"
           ],
           "columnsTo": [
             "id"
