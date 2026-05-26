@@ -116,7 +116,9 @@ async function addComments() {
 	try {
 		for (const { table, comment, columns } of comments) {
 			if (comment) {
-				await db.execute(sql.raw(`COMMENT ON TABLE "${table}" IS '${comment.replace(/'/g, "''")}'`));
+				await db.execute(
+					sql.raw(`COMMENT ON TABLE "${table}" IS '${comment.replace(/'/g, "''")}'`)
+				);
 			}
 			if (columns) {
 				for (const [col, desc] of Object.entries(columns)) {

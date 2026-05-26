@@ -11,7 +11,5 @@ export const getCurrentTimeTool: ToolEntry = {
 		}
 	},
 	execute: () => `服务器当前时间是: ${new Date().toISOString()}`,
-	searchKeywords: ['time', '时间', '当前时间', '日期', 'date'],
-	tags: ['base', 'utility'],
-	category: 'utility'
+	base: true
 };

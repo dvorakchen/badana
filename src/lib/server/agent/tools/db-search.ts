@@ -80,19 +80,5 @@ export const searchDb: ToolEntry = {
 			return `数据库查询出错: ${(err as Error).message}`;
 		}
 	},
-	searchKeywords: [
-		'数据库',
-		'查询',
-		'SQL',
-		'SELECT',
-		'db',
-		'database',
-		'query',
-		'用户',
-		'团队',
-		'角色',
-		'权限'
-	],
-	tags: ['base'],
-	category: 'database'
+	base: true
 };

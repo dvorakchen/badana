@@ -16,17 +16,8 @@ export interface ToolEntry {
 	name: string;
 	definition: ChatCompletionFunctionTool;
 	execute: (args: Record<string, unknown>, ctx: ToolExecuteContext) => Promise<string> | string;
-	searchKeywords: string[];
-	tags: string[];
-	category: string;
+	base: boolean;
 }
-
-export interface ToolExecutionResult {
-	toolResults: ChatCompletionToolMessageParam[];
-	newToolNames: string[];
-}
-
-import type { ChatCompletionToolMessageParam } from 'openai/resources/index.mjs';
 import type { DbService } from '$lib/server/db';
 
 @singleton()
@@ -35,34 +26,6 @@ export class ToolRegistry {
 
 	register(entry: ToolEntry): void {
 		this.tools.set(entry.name, entry);
-	}
-
-	search(query: string): ToolEntry[] {
-		if (!query.trim()) return [];
-
-		const q = query.toLowerCase();
-		const scored: { entry: ToolEntry; score: number }[] = [];
-
-		for (const entry of this.tools.values()) {
-			if (entry.tags.includes('base')) continue;
-
-			let score = 0;
-			if (entry.name.toLowerCase().includes(q)) score += 10;
-			for (const kw of entry.searchKeywords) {
-				if (kw.toLowerCase().includes(q)) score += 5;
-			}
-			for (const tag of entry.tags) {
-				if (tag.toLowerCase().includes(q)) score += 3;
-			}
-			if (entry.definition.function.description?.toLowerCase().includes(q)) score += 1;
-
-			if (score > 0) {
-				scored.push({ entry, score });
-			}
-		}
-
-		scored.sort((a, b) => b.score - a.score);
-		return scored.slice(0, 10).map((s) => s.entry);
 	}
 
 	getDefinition(name: string): ChatCompletionFunctionTool | undefined {
@@ -89,7 +52,7 @@ export class ToolRegistry {
 	getBaseToolNames(): string[] {
 		const names: string[] = [];
 		for (const entry of this.tools.values()) {
-			if (entry.tags.includes('base')) {
+			if (entry.base) {
 				names.push(entry.name);
 			}
 		}

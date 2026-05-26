@@ -54,7 +54,5 @@ export const listSkillsTool: ToolEntry = {
 			return `读取技能列表失败: ${(err as Error).message}`;
 		}
 	},
-	searchKeywords: [],
-	tags: ['base', 'utility'],
-	category: 'utility'
+	base: true
 };

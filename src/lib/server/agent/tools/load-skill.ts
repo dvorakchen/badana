@@ -64,7 +64,5 @@ export const loadSkillTool: ToolEntry = {
 			return `读取技能文件失败: ${(err as Error).message}`;
 		}
 	},
-	searchKeywords: [],
-	tags: ['base', 'utility'],
-	category: 'utility'
+	base: true
 };
