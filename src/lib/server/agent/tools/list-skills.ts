@@ -30,7 +30,7 @@ export const listSkillsTool: ToolEntry = {
 		try {
 			const entries = await readdir(SKILLS_DIR, { withFileTypes: true });
 			const skillFiles = entries
-				.filter((e) => e.isFile() && (e.name.endsWith('.md') || e.name.endsWith('.txt')))
+				.filter((e) => e.isFile() && e.name.endsWith('.md'))
 				.sort((a, b) => a.name.localeCompare(b.name));
 
 			if (skillFiles.length === 0) {
