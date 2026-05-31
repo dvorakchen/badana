@@ -86,7 +86,6 @@ If you plan to use a different database, you may encounter incompatibilities and
 
 Uses the solution provided by `paraglide`. The defaults include Chinese (zh) and English (en). If you need to add other languages, we recommend using AI to reference `messages/{en,zh}.json` and translate it into other languages, such as `de`. Then, add the new language to the `locales` array in `project.inlang/settings.json`.
 
-
 ## Route Guards
 
 Configure which APIs do not require login verification in `handleRouteProtected` within `hooks.server.ts`.

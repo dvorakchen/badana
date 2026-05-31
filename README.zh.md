@@ -86,7 +86,6 @@ Apache-2.0
 
 使用的 `paraglide` 提供的方案。默认有中文 zh，英文 en 两种语言，有需要添加其他语言，推荐使用 AI 参考 `messages/{en,zh}.json` 翻译为其他语言，如 `de`，然后在 `project.inlang/settings.json` 中的 `locales` 中添加上新的语言，如 `de`
 
-
 ## 路由守卫
 
 在 `hooks.server.ts` 的 `handleRouteProtected` 配置哪些 API 是不需要登录验证的

@@ -1,5 +1,24 @@
-import { pgTable, text, timestamp, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, jsonb, uuid } from 'drizzle-orm/pg-core';
 import { user } from './auth.schema';
+
+/**
+ * AI Provider 配置表
+ *
+ * 存储 AI 模型提供商的连接信息。支持配置多个 Provider（如不同的模型、地址）。
+ * AgentService 在初始化时读取所有启用的 Provider。
+ */
+export const aiProvider = pgTable('ai_provider', {
+	id: uuid('id').primaryKey().defaultRandom(),
+	name: text('name').notNull(),
+	url: text('url').notNull(),
+	model: text('model').notNull(),
+	apiKey: text('api_key').notNull(),
+	createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+	updatedAt: timestamp('updated_at', { withTimezone: true })
+		.defaultNow()
+		.$onUpdate(() => new Date())
+		.notNull()
+});
 
 export const aiChatSessions = pgTable('ai_chat_sessions', {
 	id: text('id').primaryKey(), // 唯一 ID

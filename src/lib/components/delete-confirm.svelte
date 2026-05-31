@@ -95,6 +95,7 @@
 		<button
 			class="btn whitespace-nowrap btn-error"
 			class:btn-sm={size === 'sm'}
+			type="button"
 			onclick={handleConfirm}
 			disabled={pending || countdown > 0}
 		>
@@ -111,6 +112,7 @@
 		<button
 			class="btn btn-square btn-soft"
 			class:btn-sm={size === 'sm'}
+			type="button"
 			onclick={handleCancel}
 			disabled={pending}
 		>

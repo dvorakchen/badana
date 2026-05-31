@@ -7,6 +7,7 @@ export type User = typeof auth.$Infer.Session.user;
 
 export type Role = InferSelectModel<typeof schema.role>;
 export type Team = InferSelectModel<typeof schema.team>;
+export type AiProvider = InferSelectModel<typeof schema.aiProvider>;
 
 export type TeamWithManager = Team & {
 	manager: User | null;

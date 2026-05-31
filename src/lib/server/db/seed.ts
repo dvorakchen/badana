@@ -455,5 +455,20 @@ export async function seed() {
 		}
 	}
 
+	const DEFAULT_AI_PROVIDER = {
+		name: 'Default AI Provider',
+		url: 'http://26.173.187.146:1234',
+		model: 'qwen3.6-35b-a3b-ud',
+		apiKey: 'model_api_key'
+	};
+	// 7. 使用 DEFAULT_AI_PROVIDER 导入 AI Provider 配置
+	const existingProviders = await db.query.aiProvider.findFirst();
+	if (!existingProviders) {
+		await db.insert(schema.aiProvider).values(DEFAULT_AI_PROVIDER);
+		logger.info(DEFAULT_AI_PROVIDER, '✅ AI Provider seeded');
+	} else {
+		logger.info('ℹ️ AI Providers already exist. Skipping seed.');
+	}
+
 	logger.info('🚀 Seeding process finished!');
 }
