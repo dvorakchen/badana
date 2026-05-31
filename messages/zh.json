@@ -127,5 +127,6 @@
 	"name_en": "英文名称 (en)",
 	"placeholder_name_zh": "例如：初级管理员",
 	"placeholder_name_en": "例如：Junior Admin",
-	"placeholder_team_name": "新部门名称"
+	"placeholder_team_name": "新部门名称",
+	"settings": "设置"
 }

@@ -62,7 +62,7 @@ Sidebar component for the admin dashboard.
 					Icon: LayoutDashboard,
 					links: [
 						{ label: 'Submenu 1', link: '/1' },
-						{ label: 'Submenu 2', link: '/1' }
+						{ label: m.settings(), link: '/ai-managment' }
 					]
 				}
 			]
@@ -79,7 +79,7 @@ Sidebar component for the admin dashboard.
 			]
 		},
 		{
-			topTitle: '设置',
+			topTitle: m.settings(),
 			menu: [
 				{
 					label: '设置1',

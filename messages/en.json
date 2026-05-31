@@ -127,5 +127,6 @@
 	"name_en": "English Name (en)",
 	"placeholder_name_zh": "e.g. Junior Admin",
 	"placeholder_name_en": "e.g. Junior Admin",
-	"placeholder_team_name": "New Team Name"
+	"placeholder_team_name": "New Team Name",
+	"settings": "Settings"
 }
