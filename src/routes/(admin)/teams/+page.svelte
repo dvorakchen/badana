@@ -147,16 +147,9 @@
 					</h3>
 					<Input
 						label={m.name_zh()}
-						name="nameZh"
+						name="name"
 						placeholder={m.placeholder_team_name()}
 						required
-						className="w-full"
-					/>
-
-					<Input
-						label={m.name_en()}
-						name="nameEn"
-						placeholder={m.placeholder_team_name()}
 						className="w-full"
 					/>
 				</section>
