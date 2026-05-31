@@ -1,6 +1,6 @@
 import type { DbService } from '$lib/server/db';
 import { role, user, userRole } from '$lib/server/db/schema';
-import type { DbI18nField, Role } from '$lib/shared';
+import type { Role } from '$lib/shared';
 import { eq, count, and } from 'drizzle-orm';
 import { inject, injectable } from 'tsyringe';
 
@@ -73,10 +73,9 @@ export class RoleService {
 	/**
 	 * 检查角色名是否已存在
 	 */
-	async isRoleNameTaken(nameZh: string, nameEn: string): Promise<boolean> {
+	async isRoleNameTaken(name: string): Promise<boolean> {
 		const existing = await this.db.query.role.findFirst({
-			where: (table, { or, sql }) =>
-				or(sql`${table.name}->>'zh' = ${nameZh}`, sql`${table.name}->>'en' = ${nameEn}`)
+			where: (table, { eq }) => eq(table.name, name)
 		});
 		return !!existing;
 	}
@@ -84,7 +83,7 @@ export class RoleService {
 	/**
 	 * 创建新角色
 	 */
-	async createRole(data: { name: DbI18nField; permissions: string[] }) {
+	async createRole(data: { name: string; permissions: string[] }) {
 		const [inserted] = await this.db.insert(role).values(data).returning();
 		return inserted;
 	}
@@ -92,7 +91,7 @@ export class RoleService {
 	/**
 	 * 更新角色信息
 	 */
-	async updateRole(id: string, data: { name?: DbI18nField; permissions?: string[] }) {
+	async updateRole(id: string, data: { name?: string; permissions?: string[] }) {
 		await this.db.update(role).set(data).where(eq(role.id, id)).execute();
 	}
 

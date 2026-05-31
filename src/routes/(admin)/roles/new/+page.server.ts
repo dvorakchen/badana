@@ -30,7 +30,7 @@ export const actions: Actions = {
 			return fail(400, { message: m.field_required({ name: m.role() }) });
 		}
 
-		if (await roleService.isRoleNameTaken(nameZh, nameEn)) {
+		if (await roleService.isRoleNameTaken(nameZh)) {
 			return fail(400, { message: m.field_taken({ name: m.role() }) });
 		}
 
@@ -43,11 +43,7 @@ export const actions: Actions = {
 		}
 
 		const role = await roleService.createRole({
-			name: {
-				default: nameZh,
-				zh: nameZh,
-				en: nameEn
-			},
+			name: nameZh,
 			permissions
 		});
 

@@ -1,19 +1,19 @@
 import { relations } from 'drizzle-orm';
-import { pgTable, text, timestamp, json, index, uuid } from 'drizzle-orm/pg-core';
+import { pgTable, text, timestamp, index, uuid } from 'drizzle-orm/pg-core';
 import { user } from './auth.schema';
 
 /**
  * 角色表 role
  * # 字段
  * 
- * name 是一个 json 类型
+ * name 是一个 text 类型
  * permission 是一个字符串数组
  * createdAt: timestampz("created_at").defaultNow().notNull(),
    updatedAt: timestampz("updated_at")
  */
 export const role = pgTable('role', {
 	id: uuid('id').primaryKey().defaultRandom(),
-	name: json('name').$type<{ [key: string]: string }>().notNull(),
+	name: text('name').notNull(),
 	permissions: text('permissions').array().notNull().default([]),
 	createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 	updatedAt: timestamp('updated_at', { withTimezone: true })
@@ -53,14 +53,14 @@ export const userRole = pgTable(
 /**
  * 团队表 team
  * 
- * name json 类型
+ * name 字符串类型
  * manager_id 负责人 id，用户 id
  * createdAt: timestampz("created_at").defaultNow().notNull(),
    updatedAt: timestampz("updated_at")
  */
 export const team = pgTable('team', {
 	id: uuid('id').primaryKey().defaultRandom(),
-	name: json('name').$type<{ [key: string]: string }>().notNull(),
+	name: text('name').notNull(),
 	managerId: text('manager_id').references(() => user.id, { onDelete: 'set null' }),
 	createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 	updatedAt: timestamp('updated_at', { withTimezone: true })

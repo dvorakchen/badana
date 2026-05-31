@@ -5,7 +5,6 @@
 	import { goto } from '$app/navigation';
 	import { resolve } from '$app/paths';
 	import UserAvatar from '$lib/components/user/user-avatar.svelte';
-	import { i18nFromJSON } from '$lib/shared/utils';
 	import { themeStore } from '$lib/client/store/theme.svelte';
 
 	async function handleLogout() {
@@ -52,7 +51,7 @@
 				<div class="flex">
 					<h1 class="truncate text-lg font-bold">{userStore.user?.displayUsername}</h1>
 					<span class="flex grow justify-end truncate">
-						{userStore.teams.map((t) => i18nFromJSON(t.name)).join(', ')}
+						{userStore.teams.map((t) => t.name).join(', ')}
 					</span>
 				</div>
 			</li>

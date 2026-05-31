@@ -11,7 +11,7 @@
 	import UserPicker from '$lib/components/user/user-picker.svelte';
 	import { m } from '$lib/paraglide/messages';
 	import { PermissionSchema, type User } from '$lib/shared/index.js';
-	import { i18nFromJSON, toDate } from '$lib/shared/utils.js';
+	import { toDate } from '$lib/shared/utils.js';
 	import { MoveLeft, Users, User as UserIcon } from '@lucide/svelte';
 	import { FetchError } from 'ofetch';
 
@@ -123,7 +123,7 @@
 		<div class="card bg-base-100 shadow-all md:col-span-3">
 			<div class="card-body">
 				<div class="ml-4 grid grid-cols-1 grid-rows-2">
-					<h1 class="card-title text-3xl font-bold">{i18nFromJSON(team.name)}</h1>
+					<h1 class="card-title text-3xl font-bold">{team.name}</h1>
 					<p class="mt-2 text-base-content/60">ID: {team.id}</p>
 				</div>
 

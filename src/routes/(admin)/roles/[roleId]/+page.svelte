@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { m } from '$lib/paraglide/messages';
-	import { i18nFromJSON } from '$lib/shared/utils';
 	import { ShieldCheck, Users, ChevronLeft, Save } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import Table from '$lib/components/table.svelte';
@@ -153,11 +152,11 @@
 				<ShieldCheck size={32} />
 			</div>
 			<div>
-				<h1 class="text-2xl font-bold">{i18nFromJSON(role.name)}</h1>
+				<h1 class="text-2xl font-bold">{role.name}</h1>
 				<p class="font-mono text-sm text-base-content/60 uppercase">{role.id}</p>
 			</div>
 		</div>
-		{#if role.name.default !== ROLE_ADMIN_NAME}
+		{#if role.name !== ROLE_ADMIN_NAME}
 			<div class="flex gap-2">
 				<button
 					class="btn gap-2 btn-sm btn-primary"
@@ -201,7 +200,7 @@
 												class:checkbox-warning={isInitial(value)}
 												checked={isChecked(value as PermissionValue)}
 												onchange={() => togglePermission(value as PermissionValue)}
-												disabled={role.name.default == ROLE_ADMIN_NAME}
+												disabled={role.name == ROLE_ADMIN_NAME}
 											/>
 											<span class="label-text flex flex-col">
 												<span class="text-base font-medium"

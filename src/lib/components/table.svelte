@@ -1,7 +1,5 @@
 <script module>
 	import type { Snippet } from 'svelte';
-	import type { DbI18nField } from '$lib/shared';
-	import { i18nFromJSON } from '$lib/shared/utils';
 
 	/**
 	 * 一行的数据类型
@@ -67,14 +65,6 @@
 		const checked = (e.target as HTMLInputElement).checked;
 		rows.forEach((t) => (t.checked = checked));
 	}
-
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
-	function tryI18n(value: any) {
-		if (value && typeof value === 'object' && 'default' in value) {
-			return i18nFromJSON(value as DbI18nField);
-		}
-		return value;
-	}
 </script>
 
 <div class="overflow-x-auto">
@@ -115,7 +105,7 @@
 							{#if snippets[col.field]}
 								{@render snippets[col.field](rowData)}
 							{:else}
-								{tryI18n(rowData[col.field]) ?? ''}
+								{rowData[col.field] ?? ''}
 							{/if}
 						</td>
 					{/each}

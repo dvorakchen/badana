@@ -3,7 +3,6 @@ import { TeamService } from '$lib/server/business/team';
 import { container } from 'tsyringe';
 import { fail } from '@sveltejs/kit';
 import { m } from '$lib/paraglide/messages';
-import { NA } from '$lib/shared';
 import { logger } from '$lib/server/logger';
 
 export const load: PageServerLoad = async () => {
@@ -18,21 +17,16 @@ export const load: PageServerLoad = async () => {
 export const actions: Actions = {
 	create: async ({ request }) => {
 		const data = await request.formData();
-		const nameZh = data.get('nameZh') as string;
-		const nameEn = (data.get('nameEn') as string) || NA;
+		const name = data.get('name') as string;
 
-		if (!nameZh) {
+		if (!name) {
 			return fail(400, { message: m.missing_field({ name: m.team_name() }) });
 		}
 
 		const teamService = container.resolve(TeamService);
 		try {
 			await teamService.createTeam({
-				name: {
-					default: nameZh,
-					zh: nameZh,
-					en: nameEn
-				}
+				name: name
 			});
 			return { success: true };
 		} catch (e: unknown) {

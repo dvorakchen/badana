@@ -86,27 +86,6 @@ Apache-2.0
 
 使用的 `paraglide` 提供的方案。默认有中文 zh，英文 en 两种语言，有需要添加其他语言，推荐使用 AI 参考 `messages/{en,zh}.json` 翻译为其他语言，如 `de`，然后在 `project.inlang/settings.json` 中的 `locales` 中添加上新的语言，如 `de`
 
-数据库中的 i18n 使用了 JSON 格式
-
-```ts
-export type DbI18nField =
-	| {
-			/**
-			 * 当没有区域指定的文本时候，默认显示这个文本
-			 */
-			default: string;
-			/**
-			 * 区域文本
-			 *
-			 * zh: 中文
-			 * en: English
-			 */
-			[K: string]: string;
-	  }
-	| { [K: string]: string };
-```
-
-会以 JSON 格式存在数据库字段中，在客户端使用 `i18nFromJSON(DbI18nField)` 在客户端中提取出当前时区对应的文本
 
 ## 路由守卫
 
@@ -164,7 +143,7 @@ class RoleService {
 	{list}
 >
 	{#snippet name(row: RowType)}
-		{i18nFromJSON(row.name)}
+		{row.name}
 	{/snippet}
 
 	{#snippet manager(row: RowType)}

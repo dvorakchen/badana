@@ -64,7 +64,7 @@ CREATE TABLE "verification" (
 --> statement-breakpoint
 CREATE TABLE "role" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"name" json NOT NULL,
+	"name" text NOT NULL,
 	"permissions" text[] DEFAULT '{}' NOT NULL,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
@@ -72,7 +72,7 @@ CREATE TABLE "role" (
 --> statement-breakpoint
 CREATE TABLE "team" (
 	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-	"name" json NOT NULL,
+	"name" text NOT NULL,
 	"manager_id" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL

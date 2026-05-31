@@ -1,4 +1,3 @@
-- 当要使用 i18n 的类型，应该是 `$lib/shared` 的 `DbI18nField`
 - 在客户端需要验证用户的权限，使用 `$lib/client/attachments/permission-guard` 的 `hasPermissions(...)`
 - 绝对不能在 `$effect` 里给响应式变量赋值
 - 不应该使用 `any` 类型，除非是最好的方案，如果使用 `any`，在 any 的上方加上注释 `// eslint-disable-next-line @typescript-eslint/no-explicit-any`

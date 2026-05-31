@@ -86,27 +86,6 @@ If you plan to use a different database, you may encounter incompatibilities and
 
 Uses the solution provided by `paraglide`. The defaults include Chinese (zh) and English (en). If you need to add other languages, we recommend using AI to reference `messages/{en,zh}.json` and translate it into other languages, such as `de`. Then, add the new language to the `locales` array in `project.inlang/settings.json`.
 
-Database i18n uses JSON format:
-
-```ts
-export type DbI18nField =
-	| {
-			/**
-			 * Default text to display when no region-specific text is available
-			 */
-			default: string;
-			/**
-			 * Regional text
-			 *
-			 * zh: Chinese
-			 * en: English
-			 */
-			[K: string]: string;
-	  }
-	| { [K: string]: string };
-```
-
-It is stored as JSON in database fields, and `i18nFromJSON(DbI18nField)` is used on the client side to extract the text corresponding to the current locale.
 
 ## Route Guards
 
@@ -164,7 +143,7 @@ Example:
 	{list}
 >
 	{#snippet name(row: RowType)}
-		{i18nFromJSON(row.name)}
+		{row.name}
 	{/snippet}
 
 	{#snippet manager(row: RowType)}

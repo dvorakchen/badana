@@ -4,7 +4,6 @@ import { logger } from '$lib/server/logger';
 import * as schema from './schema';
 import { eq, sql } from 'drizzle-orm';
 import { auth } from '$lib/server/auth';
-import type { DbI18nField } from '$lib/shared';
 import {
 	PERMISSIONS,
 	ROLE_ADMIN_NAME,
@@ -65,7 +64,7 @@ async function addComments() {
 			comment: '角色表，定义角色及其权限集合（RBAC）',
 			columns: {
 				id: '角色唯一标识',
-				name: '角色名称（多语言 JSON）',
+				name: '角色名称',
 				permissions: '角色拥有的权限列表（字符串数组）',
 				created_at: '创建时间',
 				updated_at: '最后更新时间'
@@ -207,17 +206,17 @@ export async function seed() {
 	];
 
 	// 2. 定义角色及其配置
-	const rolesConfig: Record<string, { name: DbI18nField; permissions: string[] }> = {
+	const rolesConfig: Record<string, { name: string; permissions: string[] }> = {
 		admin: {
-			name: { default: ROLE_ADMIN_NAME, zh: ROLE_ADMIN_NAME, en: 'System Admin' },
+			name: ROLE_ADMIN_NAME,
 			permissions: allPermissions
 		},
 		boss: {
-			name: { default: '老板', zh: '老板', en: 'Boss' },
+			name: '老板',
 			permissions: allPermissions
 		},
 		manager: {
-			name: { default: '部门经理', zh: '部门经理', en: 'Manager' },
+			name: '部门经理',
 			permissions: [
 				PERMISSIONS.team.read,
 				PERMISSIONS.team.update,
@@ -227,11 +226,11 @@ export async function seed() {
 			]
 		},
 		dev: {
-			name: { default: '开发者', zh: '开发者', en: 'Developer' },
+			name: '开发者',
 			permissions: allPermissions
 		},
 		employee: {
-			name: { default: '普通员工', zh: '普通员工', en: 'Employee' },
+			name: '普通员工',
 			permissions: [PERMISSIONS.team.read, PERMISSIONS.employee.read]
 		}
 	};
@@ -240,12 +239,12 @@ export async function seed() {
 	const roleIdMap: Record<string, string> = {};
 	for (const [key, config] of Object.entries(rolesConfig)) {
 		const existing = await db.query.role.findFirst({
-			where: (table, { sql }) => sql`${table.name}->>'en' = ${config.name.en}`
+			where: (table, { eq }) => eq(table.name, config.name)
 		});
 
 		if (existing) {
 			roleIdMap[key] = existing.id;
-			logger.info(`ℹ️ Role already exists: ${config.name.zh}`);
+			logger.info(`ℹ️ Role already exists: ${config.name}`);
 		} else {
 			const [inserted] = await db
 				.insert(schema.role)
@@ -255,7 +254,7 @@ export async function seed() {
 				})
 				.returning();
 			roleIdMap[key] = inserted.id;
-			logger.info(`✅ Role created: ${config.name.zh}`);
+			logger.info(`✅ Role created: ${config.name}`);
 		}
 	}
 
@@ -401,19 +400,19 @@ export async function seed() {
 	const teamsToSeed = [
 		{
 			key: 'rd',
-			name: { default: '研发部', zh: '研发部', en: 'Research & Development' },
+			name: '研发部',
 			manager: 'dev',
 			members: ['dev', 'emp1', 'emp2']
 		},
 		{
 			key: 'marketing',
-			name: { default: '市场部', zh: '市场部', en: 'Marketing' },
+			name: '市场部',
 			manager: 'laoban',
 			members: ['laoban', 'emp3', 'emp4']
 		},
 		{
 			key: 'management',
-			name: { default: '管理部', zh: '管理部', en: 'Management' },
+			name: '管理部',
 			manager: 'admin',
 			members: ['admin', 'zhangsan', 'lisi', 'wangwu', 'zhaoliu']
 		}
@@ -422,12 +421,12 @@ export async function seed() {
 	for (const t of teamsToSeed) {
 		let teamId: string;
 		const existingTeam = await db.query.team.findFirst({
-			where: (table, { sql }) => sql`${table.name}->>'en' = ${t.name.en}`
+			where: (table, { eq }) => eq(table.name, t.name)
 		});
 
 		if (existingTeam) {
 			teamId = existingTeam.id;
-			logger.info(`ℹ️ Team already exists: ${t.name.zh}`);
+			logger.info(`ℹ️ Team already exists: ${t.name}`);
 		} else {
 			const [inserted] = await db
 				.insert(schema.team)
@@ -437,7 +436,7 @@ export async function seed() {
 				})
 				.returning();
 			teamId = inserted.id;
-			logger.info(`✅ Team created: ${t.name.zh}`);
+			logger.info(`✅ Team created: ${t.name}`);
 		}
 
 		// 添加团队成员

@@ -1,7 +1,7 @@
 import type { DbService } from '$lib/server/db';
 import { team, user, teamUser } from '$lib/server/db/schema';
 import { and, count, eq, inArray, sql } from 'drizzle-orm';
-import type { DbI18nField, PaginationResult, TeamWithManager, User } from '$lib/shared';
+import type { PaginationResult, TeamWithManager, User } from '$lib/shared';
 import { inject, injectable } from 'tsyringe';
 
 @injectable()
@@ -74,7 +74,7 @@ export class TeamService {
 			.from(team)
 			.leftJoin(user, eq(team.managerId, user.id))
 			.leftJoin(teamUser, eq(team.id, teamUser.teamId))
-			.where(sql`${team.name}->>'default' = ${name}`)
+			.where(eq(team.name, name))
 			.groupBy(team.id, user.id)
 			.limit(1);
 
@@ -166,7 +166,7 @@ export class TeamService {
 	 */
 	async isTeamNameTaken(name: string): Promise<boolean> {
 		const existing = await this.db.query.team.findFirst({
-			where: (table, { sql }) => sql`${table.name}->>'default' = ${name}`
+			where: (table, { eq }) => eq(table.name, name)
 		});
 		return !!existing;
 	}
@@ -175,12 +175,10 @@ export class TeamService {
 	 * 创建新团队
 	 * @param data 团队数据
 	 */
-	async createTeam(data: { name: DbI18nField; managerId?: string }) {
+	async createTeam(data: { name: string; managerId?: string }) {
 		return await this.db.transaction(async (tx) => {
-			const defaultName = data.name.default;
-
 			const existing = await tx.query.team.findFirst({
-				where: (table, { sql }) => sql`${table.name}->>'default' = ${defaultName}`
+				where: (table, { eq }) => eq(table.name, data.name)
 			});
 
 			if (existing) {

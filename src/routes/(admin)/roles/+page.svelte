@@ -2,12 +2,12 @@
 	import { m } from '$lib/paraglide/messages';
 	import Table from '$lib/components/table.svelte';
 	import PermissionViewer from '$lib/components/permission-viewer.svelte';
-	import { i18nFromJSON, toDate } from '$lib/shared/utils';
 	import type { Role, PermissionValue } from '$lib/shared';
 	import type { RoleWithUserCount } from '$lib/server/business/role';
 	import { ShieldCheck, UserCog, Users } from '@lucide/svelte';
 	import { resolve } from '$app/paths';
 	import { guard } from '$lib/client/permission/attachments/permission-guard.js';
+	import { toDate } from '$lib/shared/utils.js';
 
 	let { data } = $props();
 
@@ -45,7 +45,7 @@
 			>
 				{#snippet name(row: Role)}
 					<div class="flex flex-col gap-1">
-						<span class="font-bold">{i18nFromJSON(row.name)}</span>
+						<span class="font-bold">{row.name}</span>
 						<span class="font-mono text-xs text-base-content/40 uppercase"
 							>{row.id.slice(0, 8)}</span
 						>

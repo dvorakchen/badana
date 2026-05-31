@@ -5,7 +5,7 @@
 	import UserAvatar from '$lib/components/user/user-avatar.svelte';
 	import UserStateBadge from '$lib/components/user/user-state-badge.svelte';
 	import { m } from '$lib/paraglide/messages';
-	import { i18nFromJSON, toDateTime } from '$lib/shared/utils';
+	import { toDateTime } from '$lib/shared/utils';
 	import { MoveLeft, TriangleAlert } from '@lucide/svelte';
 	import type { PageProps } from './$types';
 	import Input from '$lib/components/input.svelte';
@@ -48,7 +48,7 @@
 
 			<div class="flex gap-2">
 				{#each data.roles as role (role.id)}
-					<div class="badge badge-info">{i18nFromJSON(role.name)}</div>
+					<div class="badge badge-info">{role.name}</div>
 				{/each}
 			</div>
 

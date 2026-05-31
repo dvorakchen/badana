@@ -3,7 +3,6 @@
 	import { http } from '$lib/client/http';
 	import { m } from '$lib/paraglide/messages';
 	import type { Role } from '$lib/shared';
-	import { i18nFromJSON } from '$lib/shared/utils';
 	import { Check, X } from '@lucide/svelte';
 	import { onMount } from 'svelte';
 
@@ -30,7 +29,7 @@
 				type="button"
 				onclick={() => (roles = roles.filter((r) => r.id !== role.id))}
 			>
-				{i18nFromJSON(role.name)}
+				{role.name}
 				<X size={12} />
 			</button>
 		{/each}
@@ -43,7 +42,7 @@
 				type="button"
 				onclick={() => (roles = [...roles, role])}
 			>
-				{i18nFromJSON(role.name)}
+				{role.name}
 				<Check size={12} />
 			</button>
 		{/each}

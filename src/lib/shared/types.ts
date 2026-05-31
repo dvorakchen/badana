@@ -22,32 +22,3 @@ export interface PaginationResult<T> {
 		totalPages: number;
 	};
 }
-
-/**
- * 数据库里有些字段需要 i18n 显示，就会存这个 JSON 类型
- *
- * # Example
- *
- * ```json
- * {
- * 		default: "中文",
- * 		zh: "中文",
- * 		en: "English"
- * }
- * ```
- */
-export type DbI18nField =
-	| {
-			/**
-			 * 当没有区域指定的文本时候，默认显示这个文本
-			 */
-			default: string;
-			/**
-			 * 区域文本
-			 *
-			 * zh: 中文
-			 * en: English
-			 */
-			[K: string]: string;
-	  }
-	| { [K: string]: string };

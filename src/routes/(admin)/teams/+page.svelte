@@ -4,7 +4,6 @@
 	import type { TeamWithManager } from '$lib/shared';
 	import { m } from '$lib/paraglide/messages';
 	import { Users, Plus, LayoutGrid, Info, UserCog } from '@lucide/svelte';
-	import { i18nFromJSON } from '$lib/shared/utils';
 	import Modal from '$lib/components/modal.svelte';
 	import Input from '$lib/components/input.svelte';
 	import { enhance } from '$app/forms';
@@ -85,7 +84,7 @@
 			>
 				{#snippet name(team: RowType)}
 					<div class="flex flex-col">
-						<span class="font-bold">{i18nFromJSON(team.name)}</span>
+						<span class="font-bold">{team.name}</span>
 						<span class="text-xs text-base-content/40">{team.id}</span>
 					</div>
 				{/snippet}
@@ -105,7 +104,7 @@
 				{/snippet}
 
 				{#snippet actions(team: RowType)}
-					<a class="btn" href={resolve(`/teams/${team.name.default}`)}>
+					<a class="btn" href={resolve(`/teams/${team.name}`)}>
 						<UserCog size={18} />{m.details()}
 					</a>
 				{/snippet}
