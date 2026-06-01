@@ -16,7 +16,10 @@ export interface ToolEntry {
 	name: string;
 	definition: ChatCompletionFunctionTool;
 	execute: (args: Record<string, unknown>, ctx: ToolExecuteContext) => Promise<string> | string;
+	/** 是否是基础工具，是的话一开始就在 AI tools 上下文里 */
 	base: boolean;
+	/** 该工具是否要在前端显示调用过程 */
+	isDisplay: boolean;
 }
 import type { DbService } from '$lib/server/db';
 
@@ -41,12 +44,8 @@ export class ToolRegistry {
 		return defs;
 	}
 
-	getExecutor(
-		name: string
-	):
-		| ((args: Record<string, unknown>, ctx: ToolExecuteContext) => Promise<string> | string)
-		| undefined {
-		return this.tools.get(name)?.execute;
+	getTool(name: string) {
+		return this.tools.get(name);
 	}
 
 	getBaseToolNames(): string[] {

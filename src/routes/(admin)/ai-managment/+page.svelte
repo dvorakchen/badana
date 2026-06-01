@@ -11,6 +11,7 @@
 	import { toDateTime } from '$lib/shared/utils';
 	import { http } from '$lib/client/http';
 	import { invalidateAll } from '$app/navigation';
+	import { AGENT_USED_AI_PROVIDER_NAME } from '$lib/shared/constants.js';
 
 	let { data } = $props();
 
@@ -120,7 +121,13 @@
 			}}
 			class="space-y-4 pt-4"
 		>
-			<Input label="名称" name="name" placeholder="如：Qwen 35B" required width="100%" />
+			<Input
+				label="名称"
+				name="name"
+				placeholder="如：{AGENT_USED_AI_PROVIDER_NAME}"
+				required
+				width="100%"
+			/>
 
 			<Input
 				label="API 地址"

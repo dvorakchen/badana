@@ -3,6 +3,7 @@ import { aiProvider } from '$lib/server/db/schema';
 import { eq } from 'drizzle-orm';
 import { inject, injectable } from 'tsyringe';
 import type { InferSelectModel } from 'drizzle-orm';
+import { AGENT_USED_AI_PROVIDER_NAME } from '$lib/shared';
 
 export type AiProvider = InferSelectModel<typeof aiProvider>;
 
@@ -38,6 +39,16 @@ export class AiProviderService {
 	async getById(id: string): Promise<AiProvider | null> {
 		const result = await this.db.query.aiProvider.findFirst({
 			where: eq(aiProvider.id, id)
+		});
+		return result ?? null;
+	}
+
+	/**
+	 * 根据 ID 获取单个 Provider
+	 */
+	async getDefault(): Promise<AiProvider | null> {
+		const result = await this.db.query.aiProvider.findFirst({
+			where: eq(aiProvider.name, AGENT_USED_AI_PROVIDER_NAME)
 		});
 		return result ?? null;
 	}

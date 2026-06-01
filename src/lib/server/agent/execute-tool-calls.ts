@@ -24,11 +24,11 @@ export async function executeToolCalls(
 		deps.logger.info(`正在执行工具: ${name}`);
 		let result: string;
 
-		const executor = deps.toolRegistry.getExecutor(name);
-		if (executor) {
+		const tool = deps.toolRegistry.getTool(name);
+		if (tool) {
 			try {
 				const args = JSON.parse(toolCall.function.arguments || '{}');
-				result = await executor(args, ctx);
+				result = await tool.execute(args, ctx);
 			} catch (err) {
 				deps.logger.error(err, `工具 ${name} 执行失败`);
 				result = `工具执行出错: ${(err as Error).message}`;
@@ -37,10 +37,16 @@ export async function executeToolCalls(
 			result = `未知工具: ${name}`;
 		}
 
-		deps.sendToWs({
-			type: 'tool-call-end',
-			data: { result }
-		});
+		if (tool?.isDisplay) {
+			deps.sendToWs({
+				type: 'tool-call-start',
+				data: { name: toolCall.function?.name, args: toolCall.function.arguments }
+			});
+			deps.sendToWs({
+				type: 'tool-call-end',
+				data: { result }
+			});
+		}
 
 		toolResults.push({
 			role: 'tool',

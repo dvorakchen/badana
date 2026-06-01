@@ -29,6 +29,7 @@ export const loadSkillTool: ToolEntry = {
 			}
 		}
 	},
+	isDisplay: true,
 	execute: async (args) => {
 		const skillName = (args.name as string)?.trim();
 		if (!skillName) {

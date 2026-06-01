@@ -5,6 +5,7 @@ import * as schema from './schema';
 import { eq, sql } from 'drizzle-orm';
 import { auth } from '$lib/server/auth';
 import {
+	AGENT_USED_AI_PROVIDER_NAME,
 	PERMISSIONS,
 	ROLE_ADMIN_NAME,
 	USER_ADMIN_DISPLAYUSERNAME,
@@ -456,7 +457,7 @@ export async function seed() {
 	}
 
 	const DEFAULT_AI_PROVIDER = {
-		name: 'Default AI Provider',
+		name: AGENT_USED_AI_PROVIDER_NAME,
 		url: 'http://26.173.187.146:1234',
 		model: 'qwen3.6-35b-a3b-ud',
 		apiKey: 'model_api_key'

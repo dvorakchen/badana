@@ -11,8 +11,7 @@
  */
 
 import { inject, injectable } from 'tsyringe';
-import { env } from '$env/dynamic/private';
-import type { User } from '$lib/shared';
+import { AGENT_USED_AI_PROVIDER_NAME, type User } from '$lib/shared';
 import { PermissionService } from '$lib/server/business/permission';
 import type { DbService } from '$lib/server/db';
 import { LogService } from '$lib/server/logger';
@@ -33,11 +32,12 @@ import type {
 import type { Stream } from 'openai/streaming.mjs';
 import { systemPrompt, skillDiscoveryPrompt } from './prompt';
 import { executeToolCalls } from './execute-tool-calls';
+import { AiProviderService } from '$lib/server/business/ai-provider';
 
 @injectable()
 export class AgentService {
-	private readonly openai: OpenAI;
-	private readonly model: string;
+	private openai: OpenAI | null = null;
+	private model: string = '';
 	private ws: WebSocket | undefined;
 
 	private get db() {
@@ -46,19 +46,25 @@ export class AgentService {
 
 	constructor(
 		@inject('NormalDbService') private dbService: DbService,
+		private aiProvider: AiProviderService,
 		private permissionService: PermissionService,
 		private logger: LogService,
 		private toolRegistry: ToolRegistry
-	) {
-		this.model = env.AGENT_MODEL ?? '';
-		this.openai = new OpenAI({
-			baseURL: (env.AGENT_URL ?? '') + '/v1',
-			apiKey: env.AGENT_KEY ?? ''
-		});
-	}
+	) {}
 
 	setWs(ws: WebSocketWithUser) {
 		this.ws = ws;
+	}
+
+	async setup() {
+		const model = await this.aiProvider.getDefault();
+		if (model) {
+			this.model = model.model;
+			this.openai = new OpenAI({
+				baseURL: (model.url ?? '') + '/v1',
+				apiKey: model.apiKey ?? ''
+			});
+		}
 	}
 
 	private async initMessages(user: User, sessionId: string, txt: string) {
@@ -114,10 +120,10 @@ export class AgentService {
 								type: 'function',
 								function: { name: toolCall.function?.name || '', arguments: '' }
 							});
-							this.sendToWs({
-								type: 'tool-call-start',
-								data: { name: toolCall.function?.name, args: '' }
-							});
+							// this.sendToWs({
+							//   type: 'tool-call-start',
+							//   data: { name: toolCall.function?.name, args: '' }
+							// });
 						}
 
 						const existingCall = toolCallsMap.get(index);
@@ -137,6 +143,15 @@ export class AgentService {
 	}
 
 	async ask(user: User, sessionId: string, txt: string /*img: string[]*/) {
+		if (this.openai === null) {
+			this.logger.error('Not set OpenAI yet');
+			this.sendToWs({
+				type: 'plain-chunk',
+				data: `您未设置 ${AGENT_USED_AI_PROVIDER_NAME} 的 AI 提供商`
+			});
+
+			return;
+		}
 		this.logger.debug({ sessionId }, 'session id');
 
 		const messages = await this.initMessages(user, sessionId, txt);

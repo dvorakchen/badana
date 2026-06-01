@@ -26,6 +26,7 @@ export const listSkillsTool: ToolEntry = {
 			parameters: { type: 'object', properties: {} }
 		}
 	},
+	isDisplay: false,
 	execute: async () => {
 		try {
 			const entries = await readdir(SKILLS_DIR, { withFileTypes: true });

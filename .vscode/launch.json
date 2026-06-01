@@ -1,0 +1,17 @@
+{
+	"version": "0.2.0",
+	"configurations": [
+		{
+			"type": "pwa-node",
+			"request": "launch",
+			"name": "启动 SvelteKit 后端调试",
+			"runtimeExecutable": "pnpm",
+			"runtimeArgs": ["dev", "--open"],
+			"rootPath": "${workspaceFolder}",
+			"cwd": "${workspaceFolder}",
+			"console": "integratedTerminal",
+			"internalConsoleOptions": "neverOpen",
+			"resolveSourceMapLocations": ["${workspaceFolder}/**", "!**/node_modules/**"]
+		}
+	]
+}

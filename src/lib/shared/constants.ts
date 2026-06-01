@@ -34,3 +34,8 @@ export const USER_ADMIN_USERNAME = 'admin';
  *
  */
 export const USER_ADMIN_DISPLAYUSERNAME = '系统管理员';
+
+/**
+ * 默认的 Agent 使用的 AI 提供商，必须要有
+ */
+export const AGENT_USED_AI_PROVIDER_NAME = 'Default Agent';
