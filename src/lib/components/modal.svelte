@@ -23,7 +23,7 @@
 		role="dialog"
 		transition:fade={{ duration: 100 }}
 	>
-		<div class="relative z-10 rounded-lg bg-base-100 p-6">
+		<div class="relative z-10 max-w-[90vw] rounded-lg bg-base-100 p-6">
 			<div class="flex items-center">
 				<h3 class="grow text-xl font-bold">
 					{@render title?.()}
