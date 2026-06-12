@@ -9,6 +9,7 @@
 	import type { RxDataAiChat } from '$lib/client/websocket/model';
 	import { subscribeAiChatRx } from './ai-search';
 	import Modal from '$lib/components/modal.svelte';
+	import Ping from './ping.svelte';
 
 	let open = $state(false);
 	let chatContext = $state(ChatContext.new());
@@ -82,8 +83,8 @@
 	{/snippet}
 
 	{#snippet content()}
+		<Ping />
 		<ChatListBox {chatContext} />
-
 		<UserInput {onSend} />
 	{/snippet}
 </Modal>
