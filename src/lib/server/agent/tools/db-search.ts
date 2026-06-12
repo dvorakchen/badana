@@ -32,7 +32,7 @@ export const searchDb: ToolEntry = {
 			}
 		}
 	},
-	isDisplay: true,
+	isDisplay: false,
 	execute: async (args, ctx) => {
 		const rawQuery = ((args.query ?? args.sql ?? args.statement ?? args.q) as string)?.trim();
 

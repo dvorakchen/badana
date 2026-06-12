@@ -12,5 +12,5 @@ export const getCurrentTimeTool: ToolEntry = {
 	},
 	execute: () => `服务器当前时间是: ${new Date().toISOString()}`,
 	base: true,
-	isDisplay: true
+	isDisplay: false
 };

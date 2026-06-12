@@ -16,6 +16,8 @@
 	let { data } = $props();
 
 	let creating = $state(false);
+	let updating = $state(null as AiProvider | null);
+	let openUpdating = $derived(updating !== null);
 
 	async function handleDelete(id: string) {
 		await http(`ai-managment/${id}`, {
@@ -87,12 +89,17 @@
 				{/snippet}
 
 				{#snippet actions(row: AiProvider)}
-					<DeleteConfirm
-						size="sm"
-						onDelete={() => {
-							handleDelete(row.id);
-						}}
-					/>
+					<div class="flex items-center gap-2">
+						<button class="btn btn-sm" onclick={() => {
+							updating = row;
+						}}>修改</button>
+						<DeleteConfirm
+							size="sm"
+							onDelete={() => {
+								handleDelete(row.id);
+							}}
+						/>
+					</div>
 				{/snippet}
 			</Table>
 		</div>
@@ -140,6 +147,68 @@
 			<Input label="模型" name="model" placeholder="如：deepseek-v4-pro" required width="100%" />
 
 			<Input label="API Key" name="apiKey" width="100%" required />
+
+			<div class="modal-action">
+				<button
+					type="button"
+					class="btn btn-ghost"
+					onclick={() => {
+						creating = false;
+					}}
+				>
+					{m.cancel()}
+				</button>
+				<button type="submit" class="btn btn-primary">{m.confirm()}</button>
+			</div>
+		</form>
+	{/snippet}
+</Modal>
+
+
+<Modal bind:open={openUpdating} className="max-w-lg">
+	{#snippet title()}
+		修改 AI 提供商
+	{/snippet}
+
+	{#snippet content()}
+		<form
+			method="POST"
+			action="?/update"
+			use:enhance={() => {
+				return async ({ result, update }) => {
+					if (result.type === 'success') {
+						updating = null;
+						toastStore.add('保存成功', 'info');
+						await update();
+					} else if (result.type === 'failure') {
+						toastStore.add((result.data?.message as string) ?? '', 'error');
+					}
+				};
+			}}
+			class="space-y-4 pt-4"
+		>
+			<input type="text" hidden name="id" value={updating!.id} />
+			<Input
+				label="名称"
+				name="name"
+				placeholder="如：{AGENT_USED_AI_PROVIDER_NAME}"
+				required
+				width="100%"
+				value={updating!.name}
+			/>
+
+			<Input
+				label="API 地址"
+				name="url"
+				placeholder="如：https://api.deepseek.com"
+				required
+				width="100%"
+				value={updating!.url}
+			/>
+
+			<Input label="模型" name="model" placeholder="如：deepseek-v4-pro" required width="100%" value={updating!.model} />
+
+			<Input label="API Key" name="apiKey" width="100%" required value={updating!.apiKey} />
 
 			<div class="modal-action">
 				<button

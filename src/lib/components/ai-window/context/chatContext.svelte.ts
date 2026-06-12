@@ -10,7 +10,7 @@ export class ChatContext {
 	public chatList: ChatBubble<Component<any>>[] = $state([]);
 	private _handling = $state(false);
 
-	private constructor() {}
+	private constructor() { }
 
 	get handling() {
 		return this._handling;
@@ -37,17 +37,14 @@ export class ChatContext {
 	 */
 	private finishLast() {
 		const last = this.getLast();
-		if (last && last.pending) {
-			last.pending = false;
-			if (last.props && typeof last.props === 'object' && 'done' in last.props) {
-				last.props.done = true;
-			}
+		if (last && last.props && typeof last.props === 'object' && 'done' in last.props) {
+			last.props.done = true;
 		}
 	}
 
 	addPlainChunk(chunk: string) {
 		const last = this.getLast();
-		if (last && last.View === Plain && last.pending) {
+		if (last && last.type === 'plain') {
 			last.props.txt += chunk;
 		} else {
 			this.finishLast();
@@ -56,9 +53,22 @@ export class ChatContext {
 	}
 
 	addThinkingChunk(chunk: string) {
-		const last = this.getLast();
-		if (last && last.View === Thinking && last.pending) {
+		let last = this.getLast();
+
+		// 如果由于大模型流式输出的特性，中间夹杂了空的 plain 气泡（例如只有空格或换行），将其出栈，避免打断 thinking 的合并
+		if (last && last.type === 'plain' && last.props.txt.trim() === '') {
+			this.chatList.pop();
+			last = this.getLast();
+		}
+
+		// 多个 thinking chunk 需要合并到同一个气泡中，否则会出现大量短暂的 thinking 气泡
+		if (last && last.type === 'thinking') {
 			last.props.txt += chunk;
+			// 如果该气泡之前已被标记为完成（例如被空的 plain chunk 打断时 finishLast），重新激活它的状态
+			// last.pending = true;
+			if (last.props && typeof last.props === 'object' && 'done' in last.props) {
+				last.props.done = false;
+			}
 		} else {
 			this.finishLast();
 			this.chatList.push(ChatBubble.thinking(chunk));
@@ -72,7 +82,7 @@ export class ChatContext {
 
 	finishToolCall(result: string) {
 		const last = this.getLast();
-		if (last && last.View === ToolCall && last.pending) {
+		if (last && last.View === ToolCall) {
 			last.props.result = result;
 			this.finishLast();
 		}
@@ -84,18 +94,16 @@ export class ChatContext {
 		let bubble: ChatBubble<typeof Confirm> = ChatBubble.confirm(
 			name,
 			args,
-			() => {},
-			() => {}
+			() => { },
+			() => { }
 		);
 
 		const approve = () => {
 			bubble.props.status = 'approved';
-			bubble.pending = false;
 			onApprove();
 		};
 		const reject = () => {
 			bubble.props.status = 'rejected';
-			bubble.pending = false;
 			onReject();
 		};
 

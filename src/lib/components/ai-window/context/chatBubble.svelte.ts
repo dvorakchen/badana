@@ -15,33 +15,33 @@ type SenderType = 'user' | 'ai';
 export class ChatBubble<C extends Component<any, any, any>> {
 	id: string = utils.uuid();
 	View: C;
+	type: 'question' | 'plain' | 'thinking' | 'toolCall' | 'confirm' = 'question';
 	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	props: ComponentProps<C> = $state() as any;
 	sender: SenderType;
-	pending: boolean = $state(false);
 	replacable: boolean = false;
 
-	constructor(view: C, props: ComponentProps<C>, sender: SenderType, pending: boolean) {
+	constructor(view: C, props: ComponentProps<C>, sender: SenderType, type?: ChatBubble<C>['type']) {
 		this.View = view;
 		this.props = props;
 		this.sender = sender;
-		this.pending = pending;
+		this.type = type ?? (sender === 'user' ? 'question' : 'plain');
 	}
 
 	static fromUser(txt: string, imgs: string[]) {
-		return new ChatBubble(UserQuestion, { txt, imgs }, 'user', false);
+		return new ChatBubble(UserQuestion, { txt, imgs }, 'user', 'question');
 	}
 
 	static plain(txt: string) {
-		return new ChatBubble(Plain, { txt }, 'ai', true);
+		return new ChatBubble(Plain, { txt }, 'ai', 'plain');
 	}
 
 	static thinking(txt: string = '') {
-		return new ChatBubble(Thinking, { txt, done: false }, 'ai', true);
+		return new ChatBubble(Thinking, { txt, done: false }, 'ai', 'thinking');
 	}
 
 	static toolCall(name: string, args: string) {
-		return new ChatBubble(ToolCall, { name, args, done: false, result: '' }, 'ai', true);
+		return new ChatBubble(ToolCall, { name, args, done: false, result: '' }, 'ai', 'toolCall');
 	}
 
 	static confirm(name: string, args: string, onApprove: () => void, onReject: () => void) {
@@ -49,7 +49,7 @@ export class ChatBubble<C extends Component<any, any, any>> {
 			Confirm,
 			{ name, args, status: 'pending', onApprove, onReject },
 			'ai',
-			true
+			'confirm'
 		);
 	}
 }

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { http } from '$lib/client/http';
-	import { CircleAlert } from '@lucide/svelte';
+	import { Check, CircleAlert } from '@lucide/svelte';
 
 	import { onMount } from 'svelte';
 
@@ -34,7 +34,7 @@
 	{:then res}
 		{#if res.status === 'ok'}
 			<div class="badge gap-2 badge-success">
-				<CircleAlert size="16" />
+				<Check size="16" />
 				AI 连接正常
 			</div>
 		{:else if res.status === 'handling'}
