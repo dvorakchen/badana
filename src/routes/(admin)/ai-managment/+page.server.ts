@@ -43,7 +43,6 @@ export const actions: Actions = {
 		const name = (data.get('name') as string)?.trim();
 		const url = (data.get('url') as string)?.trim();
 		const model = (data.get('model') as string)?.trim();
-		const apiKey = (data.get('apiKey') as string)?.trim();
 
 		if (!name || !url || !model) {
 			return fail(400, { message: '名称、地址和模型不能为空' });
@@ -51,7 +50,7 @@ export const actions: Actions = {
 
 		const service = container.resolve(AiProviderService);
 		try {
-			await service.update(id, { name, url, model, apiKey: apiKey || '' });
+			await service.update(id, { name, url, model });
 			return { success: true };
 		} catch (e) {
 			logger.error(e);

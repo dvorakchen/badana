@@ -197,6 +197,21 @@ export class TeamService {
 	}
 
 	/**
+	 * 更新团队名称
+	 */
+	async updateTeamName(teamId: string, newName: string) {
+		const existing = await this.db.query.team.findFirst({
+			where: (table, { eq }) => eq(table.name, newName)
+		});
+
+		if (existing && existing.id !== teamId) {
+			throw new Error('TEAM_NAME_TAKEN');
+		}
+
+		await this.db.update(team).set({ name: newName }).where(eq(team.id, teamId));
+	}
+
+	/**
 	 * 删除团队
 	 * @param id 团队 ID
 	 */

@@ -30,7 +30,7 @@ import type {
 	ChatCompletionMessageFunctionToolCall
 } from 'openai/resources/index.mjs';
 import type { Stream } from 'openai/streaming.mjs';
-import { systemPrompt, skillDiscoveryPrompt } from './prompt';
+import { systemPrompt, skillDiscoveryPrompt, planPrompt, verifyPlanPrompt } from './prompt';
 import { executeToolCalls } from './execute-tool-calls';
 import { AiProviderService } from '$lib/server/business/ai-provider';
 
@@ -50,7 +50,7 @@ export class AgentService {
 		private permissionService: PermissionService,
 		private logger: LogService,
 		private toolRegistry: ToolRegistry
-	) {}
+	) { }
 
 	setWs(ws: WebSocketWithUser) {
 		this.ws = ws;
@@ -120,6 +120,7 @@ export class AgentService {
 		}
 
 		baseMessages.push({ role: 'system', content: skillDiscoveryPrompt() });
+		baseMessages.push({ role: 'system', content: planPrompt() });
 		baseMessages.push({ role: 'user', content: txt });
 
 		return baseMessages;
@@ -139,10 +140,10 @@ export class AgentService {
 					reasoningContent += r;
 					this.sendToWs({ type: 'thinking-chunk', data: r });
 				}
-				if (delta.content) {
-					textContent += delta.content;
-					this.sendToWs({ type: 'plain-chunk', data: delta.content });
-				}
+				// if (delta.content) {
+				// 	textContent += delta.content;
+				// 	this.sendToWs({ type: 'plain-chunk', data: delta.content });
+				// }
 				if (delta.tool_calls) {
 					for (const toolCall of delta.tool_calls) {
 						const index = toolCall.index;
@@ -187,8 +188,10 @@ export class AgentService {
 		this.logger.debug({ sessionId }, 'session id');
 
 		const messages = await this.initMessages(user, sessionId, txt);
-		const agentMessages: ChatCompletionMessageParam[] = [{ role: 'user', content: txt }];
+		const recordMessages: ChatCompletionMessageParam[] = [{ role: 'user', content: txt }];
 		const tools = this.toolRegistry.getDefinitions(this.toolRegistry.getBaseToolNames());
+
+		let verified = false;
 
 		try {
 			while (true) {
@@ -211,7 +214,7 @@ export class AgentService {
 					if (reasoningContent) assistantMsg.reasoning_content = reasoningContent;
 
 					messages.push(assistantMsg);
-					agentMessages.push(assistantMsg);
+					recordMessages.push(assistantMsg);
 
 					const toolResults = await executeToolCalls(toolCalls, user, {
 						db: this.db,
@@ -220,10 +223,18 @@ export class AgentService {
 						sendToWs: (p) => this.sendToWs(p)
 					});
 					messages.push(...toolResults);
-					agentMessages.push(...toolResults);
+					recordMessages.push(...toolResults);
 
 					continue;
 				}
+
+				if (!verified) {
+					// 反复验证计划
+					await this.verifyPlan(txt, messages, recordMessages, textContent);
+					verified = true;
+					continue;
+				}
+
 
 				const finalAssistantMsg: ChatCompletionAssistantMessageParam = {
 					role: 'assistant',
@@ -233,9 +244,9 @@ export class AgentService {
 				if (reasoningContent) finalAssistantMsg.reasoning_content = reasoningContent;
 
 				messages.push(finalAssistantMsg);
-				agentMessages.push(finalAssistantMsg);
+				recordMessages.push(finalAssistantMsg);
 
-				await this.appendChatSession(user.id, sessionId, agentMessages);
+				await this.appendChatSession(user.id, sessionId, recordMessages);
 
 				break;
 			}
@@ -245,6 +256,44 @@ export class AgentService {
 				type: 'plain-chunk',
 				data: '抱歉，与 AI 服务通信时出错。'
 			});
+		}
+	}
+
+	async verifyPlan(userMsg: string, messages: ChatCompletionMessageParam[], recordMessages: ChatCompletionMessageParam[], plan: string) {
+		const prompt = `${verifyPlanPrompt()}
+
+### 用户消息
+${userMsg}
+
+### 当前计划
+${plan}
+
+请根据以上信息，验证当前计划的合理性，并给出修改建议。
+如果计划合理，请直接回复 "计划合理，无需修改"。如果计划存在问题，请详细说明问题所在，并给出具体的修改建议。请务必确保回复内容清晰、具体，便于用户理解和执行。`;
+
+		messages.push({ role: 'system', content: prompt });
+		recordMessages.push({ role: 'system', content: prompt });
+		let counter = 0;
+		while (counter++ < 7) {
+			const resp = await this.openai!.chat.completions.create({
+				model: this.model,
+				messages: messages,
+			});
+
+			const content = resp.choices[0].message.content;
+
+			if (content === 'OK') {
+				break;
+			}
+
+			messages.push({ role: 'assistant', content });
+			recordMessages.push({ role: 'assistant', content });
+		}
+
+		if (counter >= 7) {
+			this.logger.warn('计划验证已达最大尝试次数，继续执行后续流程');
+			messages.push({ role: 'system', content: '好，按这份计划执行' });
+			recordMessages.push({ role: 'system', content: '好，按这份计划执行' });
 		}
 	}
 

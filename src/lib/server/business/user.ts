@@ -1,6 +1,6 @@
 import type { DbService } from '$lib/server/db';
 import { role, userRole, user, teamUser } from '$lib/server/db/schema';
-import { eq, count, and, ilike, type SQL, inArray, sql, notInArray } from 'drizzle-orm';
+import { eq, count, and, ilike, type SQL, inArray, sql, notInArray, like } from 'drizzle-orm';
 import {
 	USER_ADMIN_USERNAME,
 	type PaginationResult,
@@ -31,7 +31,7 @@ export type UserFilter = {
 
 @injectable()
 export class UserService {
-	constructor(@inject('NormalDbService') private dbService: DbService) {}
+	constructor(@inject('NormalDbService') private dbService: DbService) { }
 
 	private get db() {
 		return this.dbService.db;
@@ -141,6 +141,17 @@ export class UserService {
 	async getUserByUsername(usernameStr: string): Promise<UserType | null> {
 		const result = await this.db.query.user.findFirst({
 			where: eq(user.username, usernameStr)
+		});
+		return result ?? null;
+	}
+
+	/**
+ * 根据用户名获取用户
+ * @param username 用户名
+ */
+	async getUserByDisplayName(displayNameStr: string): Promise<UserType | null> {
+		const result = await this.db.query.user.findFirst({
+			where: like(user.displayUsername, `%${displayNameStr}%`)
 		});
 		return result ?? null;
 	}

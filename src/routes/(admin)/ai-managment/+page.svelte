@@ -208,14 +208,14 @@
 
 			<Input label="模型" name="model" placeholder="如：deepseek-v4-pro" required width="100%" value={updating!.model} />
 
-			<Input label="API Key" name="apiKey" width="100%" required value={updating!.apiKey} />
+			<Input label="API Key" name="apiKey" width="100%" disabled value='不可修改' />
 
 			<div class="modal-action">
 				<button
 					type="button"
 					class="btn btn-ghost"
 					onclick={() => {
-						creating = false;
+						updating = null;
 					}}
 				>
 					{m.cancel()}
